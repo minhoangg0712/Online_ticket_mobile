@@ -1,32 +1,19 @@
+import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import Home from './screens/HomeScreen';
-import Ticket from './screens/TicketScreen';
-import Profile from './screens/ProfileScreen';
+import TabNavigator from './navigation/TabNavigator';
+import SearchScreen from './screens/SearchScreen';
 
-const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
     <NavigationContainer>
-      <Tab.Navigator
-        initialRouteName="Home"
-        screenOptions={({ route }) => ({
-          tabBarIcon: ({ color, size }) => {
-            let iconName = 'home';
-            if (route.name === 'Home') iconName = 'home';
-            else if (route.name === 'Ticket') iconName = 'ticket';
-            else if (route.name === 'Profile') iconName = 'person';
-            return <Ionicons name={iconName} size={size} color={color} />;
-          },
-        })}
-      >
-        <Tab.Screen name="Home" component={Home} />
-        <Tab.Screen name="Ticket" component={Ticket} />
-        <Tab.Screen name="Profile" component={Profile} />
-      </Tab.Navigator>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Main" component={TabNavigator} />
+        <Stack.Screen name="Search" component={SearchScreen} />
+      </Stack.Navigator>
     </NavigationContainer>
   );
 }
