@@ -15,11 +15,13 @@ import { useNavigation } from '@react-navigation/native';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 
 const { width } = Dimensions.get('window');
+
 type RootStackParamList = {
   Search: undefined;
 };
 
 type NavigationProp = BottomTabNavigationProp<RootStackParamList>;
+
 const featuredEvents = [
   {
     id: '1',
@@ -55,8 +57,24 @@ const featuredEvents = [
   },
 ];
 
+const tabImages = {
+  thisWeek: [
+    require('../assets/Picture/Anh1.jpg'),
+    require('../assets/Picture/Anh1.jpg'),
+    require('../assets/Picture/Anh1.jpg'),
+    require('../assets/Picture/Anh1.jpg'),
+  ],
+  thisMonth: [
+    require('../assets/Picture/Anh2.jpg'),
+    require('../assets/Picture/Anh2.jpg'),
+    require('../assets/Picture/Anh2.jpg'),
+    require('../assets/Picture/Anh2.jpg'),
+  ],
+};
+
 const Home = () => {
   const navigation = useNavigation<NavigationProp>();
+  const [timeTab, setTimeTab] = React.useState<'thisWeek' | 'thisMonth'>('thisWeek');
 
   const renderBannerSlide = (item, index) => (
     <View key={`slide-${item.id}-${index}`} style={styles.slide}>
@@ -117,6 +135,7 @@ const Home = () => {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Banner Swiper */}
         <View style={styles.swiperContainer}>
           <Swiper
             style={styles.swiper}
@@ -130,11 +149,12 @@ const Home = () => {
             removeClippedSubviews={false}
             loop={true}
             index={0}
-            >
+          >
             {featuredEvents.map((item, index) => renderBannerSlide(item, index))}
           </Swiper>
         </View>
 
+        {/* Sự kiện đặc biệt */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Sự kiện đặc biệt</Text>
@@ -149,6 +169,7 @@ const Home = () => {
           />
         </View>
 
+        {/* Sự kiện xu hướng */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Sự kiện xu hướng</Text>
@@ -163,6 +184,7 @@ const Home = () => {
           />
         </View>
 
+        {/* Dành cho bạn */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Dành cho bạn</Text>
@@ -173,6 +195,44 @@ const Home = () => {
             keyExtractor={(item) => `foryou-${item.id}`}
             showsHorizontalScrollIndicator={false}
             renderItem={renderEventCard}
+            contentContainerStyle={styles.eventsContainer}
+          />
+        </View>
+
+        {/* Sự kiện theo thời gian */}
+        <View style={styles.section}>
+          
+          {/* Tab chọn Tuần này / Tháng này */}
+          <View style={styles.timeTabContainer}>
+            {['thisWeek', 'thisMonth'].map((tab) => (
+              <TouchableOpacity
+                key={tab}
+                onPress={() => setTimeTab(tab as 'thisWeek' | 'thisMonth')}
+                style={[styles.timeTabButton,]}
+              >
+                <Text
+                  style={[
+                    styles.timeTabText,
+                    timeTab === tab && styles.timeTabTextSelected,
+                  ]}
+                >
+                  {tab === 'thisWeek' ? 'Tuần này' : 'Tháng này'}
+                </Text>
+                {timeTab === tab && <View style={styles.timeTabUnderline} />}
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <FlatList
+            data={tabImages[timeTab]}
+            horizontal
+            keyExtractor={(_, index) => `time-image-${index}`}
+            showsHorizontalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <View style={styles.timeImageBox}>
+                <Image source={item} style={styles.timeImage} />
+              </View>
+            )}
             contentContainerStyle={styles.eventsContainer}
           />
         </View>
@@ -214,7 +274,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   swiper: {
-    height: 250, 
+    height: 250,
   },
   slide: {
     flex: 1,
@@ -247,7 +307,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 14,
   },
-
   dot: {
     backgroundColor: 'rgba(255, 255, 255, 0.5)',
     width: 8,
@@ -260,10 +319,10 @@ const styles = StyleSheet.create({
     width: 20,
     height: 8,
     borderRadius: 4,
-    marginHorizontal: 3, 
+    marginHorizontal: 3,
   },
   pagination: {
-    bottom: 15, 
+    bottom: 15,
   },
   section: {
     marginBottom: 25,
@@ -297,7 +356,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     width: 190,
   },
-    cardOnlyImage: {
+  cardOnlyImage: {
     width: '100%',
     height: 250,
     resizeMode: 'cover',
@@ -333,39 +392,14 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     fontWeight: '500',
   },
-  cardLocation: {
-    fontSize: 12,
-    color: '#7F8C8D',
-    marginLeft: 6,
-    fontWeight: '500',
-    flex: 1,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 12,
-  },
   cardPrice: {
     fontSize: 14,
     fontWeight: 'bold',
     color: '#FF7E42',
   },
-  bookButton: {
-    backgroundColor: '#FF7E42',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-  },
-  bookButtonText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
   bottomSpace: {
     height: 30,
   },
-
   horizontalImageCard: {
     width: width * 0.65,
     height: 130,
@@ -377,6 +411,54 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
+  },
+  timeTabContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    marginBottom: 15,
+    paddingHorizontal: 20,
+  },
+  timeTabButton: {
+  paddingVertical: 6,
+  paddingHorizontal: 10,
+  marginHorizontal: 6,
+  position: 'relative',
+  },
+  timeTabText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#555',
+  },
+  timeTabTextSelected: {
+    color: '#FF7E42',
+    fontWeight: '600',
+  },
+  timeTabUnderline: {
+    height: 3,
+    width: 90,
+    backgroundColor: '#FF7E42',
+    borderRadius: 2,
+    position: 'absolute',
+    bottom: 0,
+  },
+  timeGrid: {
+    paddingHorizontal: 20,
+    flexDirection: 'row', // Ensure horizontal layout
+    justifyContent: 'space-between', // Distribute images evenly
+    alignItems: 'center',
+  },
+  timeImageBox: {
+    width: width * 0.65, 
+    backgroundColor: '#fff6f2',
+    marginHorizontal: 8,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  timeImage: {
+    width: '100%',
+    height: 150,
+    resizeMode: 'cover',
+    borderRadius: 0, 
   },
 });
 
