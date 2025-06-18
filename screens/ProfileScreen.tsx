@@ -7,31 +7,77 @@ import {
   Image,
   StyleSheet,
   ScrollView,
-  SafeAreaView,
+  SafeAreaView, 
+  Alert
 } from 'react-native';
+import { useEffect } from 'react';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
+import * as ImagePicker from 'expo-image-picker';
 
 const ProfileScreen = () => {
   const [fullName, setFullName] = useState('Trần Trung Đức');
   const [phone, setPhone] = useState('0487673233');
   const [dob, setDob] = useState('08/10/2004');
-  const [gender, setGender] = useState('other');
-  const [avatarUri, setAvatarUri] = useState('https://storage.googleapis.com/a1aa/image/45ae40ea-550e-4aa8-9ec1-48d292684089.jpg');
+  const [gender, setGender] = useState('male');
+ 
+  const [imageUri, setImageUri] = useState(null);
 
-  const handlePickImage = () => {
-  launchCamera(
-      {
-        mediaType: 'photo',
-        
-      },
-      (response) => {
-        if (response.assets && response.assets.length > 0) {
-          setAvatarUri(response.assets[0].uri || '');
-        }
-      }
+  const pickImageAsync = async () => {
+    Alert.alert(
+      'Chọn ảnh đại diện',
+      'Bạn muốn chọn ảnh từ đâu?',
+      [
+        { text: 'Thư viện ảnh', onPress: () => openImageLibrary() },
+        { text: 'Chụp ảnh mới', onPress: () => openCamera() },
+        { text: 'Hủy', style: 'cancel' },
+      ]
     );
   };
+
+  const openImageLibrary = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (status !== 'granted') {
+      Alert.alert('Lỗi', 'Cần quyền truy cập thư viện ảnh');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setImageUri(result.assets[0].uri);
+    }
+  };
+
+  const openCamera = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    
+    if (status !== 'granted') {
+      Alert.alert('Lỗi', 'Cần quyền truy cập camera');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setImageUri(result.assets[0].uri);
+    }
+  };
+
+  const imageSource = imageUri 
+    ? { uri: imageUri }
+    : require('../assets/avatar.jpg'); // Điều chỉnh đường dẫn phù hợp
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -48,13 +94,8 @@ const ProfileScreen = () => {
           <ScrollView contentContainerStyle={styles.form} showsVerticalScrollIndicator={false}>
             {/* Avatar */}
             <View style={styles.avatarContainer}>
-              <Image
-                source={{ uri: avatarUri }}
-                style={styles.avatar}
-              />
-              <TouchableOpacity
-                style={styles.cameraButton} onPress={handlePickImage}
-              >
+              <Image source={imageSource} style={styles.avatar} />
+              <TouchableOpacity style={styles.cameraButton} onPress={pickImageAsync}>
                 <Icon name="camera" size={10} color="white" />
               </TouchableOpacity>
               <Text style={styles.avatarText}>
@@ -182,8 +223,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   avatar: {
-    width: 80,
-    height: 80,
+    width: 90,
+    height: 90,
     borderRadius: 50,
     marginBottom: 8,
     borderWidth: 2,
@@ -269,7 +310,7 @@ const styles = StyleSheet.create({
   genderContainer: {
     flexDirection: 'row',
     gap: 16,
-    marginBottom: 35,
+    marginBottom: 25,
   },
   genderOption: {
     flexDirection: 'row',
