@@ -253,12 +253,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FF7E42',
     paddingHorizontal: 20,
-    paddingTop: 50,
+    paddingTop: 45,
     paddingBottom: 15,
   },
   logoImage: {
-    width: 130,
-    height: 45,
+    width: 150,
+    height: 50,
     resizeMode: 'contain',
   },
   headerRight: {
