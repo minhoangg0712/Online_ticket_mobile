@@ -9,11 +9,22 @@ import {
   SafeAreaView,
   Alert,
 } from 'react-native';
-import authService from '../services/auth.service'; // đảm bảo đường dẫn đúng
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import authService from '../services/auth.service';
+
+type RootParamList = {
+  Login: undefined;
+  Home: undefined;
+  Register: undefined;
+};
+
+type LoginScreenNavigationProp = NativeStackNavigationProp<RootParamList, 'Login'>;
 
 const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const navigation = useNavigation<LoginScreenNavigationProp>();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -23,8 +34,8 @@ const LoginScreen: React.FC = () => {
 
     try {
       const response = await authService.login(email, password);
-      Alert.alert('Thành công', response.message);
-      // TODO: Lưu token nếu cần
+      
+      navigation.replace('Home'); //
     } catch (err) {
       if (Array.isArray(err)) {
         Alert.alert('Lỗi xác thực', err.join('\n'));
@@ -32,6 +43,21 @@ const LoginScreen: React.FC = () => {
         Alert.alert('Lỗi', err.toString());
       }
     }
+  };
+
+  const handleForgotPassword = () => {
+    // Xử lý quên mật khẩu
+    Alert.alert('Thông báo', 'Tính năng đang được phát triển');
+  };
+
+  const handleRegister = () => {
+    // Điều hướng đến màn hình đăng ký
+    navigation.navigate('Register');
+  };
+
+  const handleGoogleLogin = () => {
+    // Xử lý đăng nhập Google
+    Alert.alert('Thông báo', 'Tính năng đăng nhập Google đang được phát triển');
   };
 
   return (
@@ -48,6 +74,8 @@ const LoginScreen: React.FC = () => {
           keyboardType="email-address"
           value={email}
           onChangeText={setEmail}
+          autoCapitalize="none"
+          autoCorrect={false}
         />
         <TextInput
           style={styles.input}
@@ -56,23 +84,25 @@ const LoginScreen: React.FC = () => {
           secureTextEntry
           value={password}
           onChangeText={setPassword}
+          autoCapitalize="none"
+          autoCorrect={false}
         />
 
         <TouchableOpacity style={styles.button} onPress={handleLogin}>
           <Text style={styles.buttonText}>Đăng nhập</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity>
+        <TouchableOpacity onPress={handleForgotPassword}>
           <Text style={styles.forgotPassword}>Quên mật khẩu?</Text>
         </TouchableOpacity>
 
         <Text style={styles.footerText}>Chưa có tài khoản?</Text>
 
-        <TouchableOpacity>
+        <TouchableOpacity onPress={handleRegister}>
           <Text style={styles.registerLink}>Tạo tài khoản ngay</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.googleBtn}>
+        <TouchableOpacity style={styles.googleBtn} onPress={handleGoogleLogin}>
           <Image
             source={{
               uri: 'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg',

@@ -11,15 +11,24 @@ import {
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
+import authService from '../services/auth.service';
 
 type RootStackParamList = {
   Profile: undefined;
   Account: undefined;
-  // Add other screens here if needed
+  Login: undefined;
 };
 
 const ProfileScreen = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+
+  const handleLogout = async () => {
+    await authService.logout(); 
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Login' }], 
+    });
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -59,7 +68,7 @@ const ProfileScreen = () => {
         </View>
 
 
-        <TouchableOpacity style={styles.logoutItem}>
+        <TouchableOpacity style={styles.logoutItem} onPress={handleLogout}>
             <Icon name="sign-out" size={20} color="white" style={styles.logoutIcon} />
             <Text style={styles.logoutText}>Đăng xuất</Text>
         </TouchableOpacity>

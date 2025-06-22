@@ -11,7 +11,6 @@ export default function Layout() {
           if (route.name === 'home') iconName = 'home';
           else if (route.name === 'ticket') iconName = 'ticket';
           else if (route.name === 'profile') iconName = 'person';
-          else if (route.name === 'login') iconName = 'log-in';
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
