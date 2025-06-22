@@ -43,7 +43,6 @@ const AccountScreen = () => {
       Alert.alert('Lỗi', 'Cần quyền truy cập thư viện ảnh');
       return;
     }
-
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,

@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff7f3',
     borderWidth: 1,
     borderColor: '#000',
-    borderRadius: 999, // bo tròn hết mức
+    borderRadius: 999,
     paddingVertical: 12,
     marginHorizontal: 40,
     marginTop: 100,
