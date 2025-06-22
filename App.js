@@ -4,7 +4,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import TabNavigator from './navigation/TabNavigator';
 import SearchScreen from './screens/SearchScreen';
+import AccountScreen from './screens/AccountScreen';
 import LoginScreen from './screens/LoginScreen';
+import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -16,7 +18,9 @@ export default function App() {
         <Stack.Screen name="Home" component={TabNavigator} />
         <Stack.Screen name="Profile" component={TabNavigator} />
         <Stack.Screen name="Search" component={SearchScreen} />
-        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Account" component={AccountScreen} />
+        <Stack.Screen name="Login" component={TabNavigator} />
+        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,9 +7,33 @@ import {
   Image,
   StyleSheet,
   SafeAreaView,
+  Alert,
 } from 'react-native';
+import authService from '../services/auth.service'; // đảm bảo đường dẫn đúng
 
 const LoginScreen: React.FC = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ email và mật khẩu');
+      return;
+    }
+
+    try {
+      const response = await authService.login(email, password);
+      Alert.alert('Thành công', response.message);
+      // TODO: Lưu token nếu cần
+    } catch (err) {
+      if (Array.isArray(err)) {
+        Alert.alert('Lỗi xác thực', err.join('\n'));
+      } else {
+        Alert.alert('Lỗi', err.toString());
+      }
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header} />
@@ -22,15 +46,19 @@ const LoginScreen: React.FC = () => {
           placeholder="Nhập địa chỉ email"
           placeholderTextColor="#888"
           keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
         />
         <TextInput
           style={styles.input}
           placeholder="Nhập mật khẩu"
           placeholderTextColor="#888"
           secureTextEntry
+          value={password}
+          onChangeText={setPassword}
         />
 
-        <TouchableOpacity style={styles.button}>
+        <TouchableOpacity style={styles.button} onPress={handleLogin}>
           <Text style={styles.buttonText}>Đăng nhập</Text>
         </TouchableOpacity>
 
