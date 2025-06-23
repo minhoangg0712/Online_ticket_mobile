@@ -5,6 +5,7 @@ import TabNavigator from './navigation/TabNavigator';
 import SearchScreen from './screens/SearchScreen';
 import AccountScreen from './screens/AccountScreen';
 import LoginScreen from './screens/LoginScreen';
+import RegisterScreen from './screens/RegisterScreen';
 import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 
 
@@ -17,6 +18,7 @@ export default function App() {
         screenOptions={{ headerShown: false }}
         initialRouteName="Login">
         <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         <Stack.Screen name="Home" component={TabNavigator} />       
         <Stack.Screen name="Search" component={SearchScreen} />

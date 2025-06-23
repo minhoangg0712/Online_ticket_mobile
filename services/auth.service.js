@@ -3,6 +3,47 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = 'http://10.0.2.2:8080/api';
 
+const sendVerificationCode = async (email) => {
+  try {
+    const response = await axios.post(`${API_URL}/auth/sendVerificationCode`, { email }, {
+      responseType: 'text'
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || 'Không thể gửi mã xác minh.';
+  }
+};
+
+const verifyCode = async (email, code) => {
+  try {
+    const response = await axios.post(`${API_URL}/auth/verifyCode`, { email, code });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Mã xác thực không hợp lệ.';
+  }
+};
+
+const register = async (email, code, fullName, password, confirmPassword) => {
+  try {
+    const response = await axios.post(`${API_URL}/auth/register`, {
+      email,
+      code,
+      fullName,
+      password,
+      confirmPassword,
+    }, {
+      responseType: 'text'
+    });
+
+    return response.data;
+  } catch (error) {
+    if (error.response && error.response.data) {
+      throw error.response.data.message || 'Đăng ký thất bại.';
+    }
+    throw 'Lỗi kết nối tới server.';
+  }
+};
+
 const login = async (email, password) => {
   try {
     const response = await axios.post(`${API_URL}/auth/login`, {
@@ -18,15 +59,12 @@ const login = async (email, password) => {
     return response.data;
   } catch (error) {
     if (error.response && error.response.data) {
-      // Nếu server trả về mảng lỗi dạng validation
       if (Array.isArray(error.response.data)) {
         throw error.response.data;
       }
-      // Nếu trả về object lỗi
       throw error.response.data.message || 'Đăng nhập thất bại.';
-    } else {
-      throw 'Lỗi kết nối tới server.';
     }
+    throw 'Lỗi kết nối tới server.';
   }
 };
 
@@ -39,6 +77,9 @@ const logout = async () => {
 };
 
 export default {
+  sendVerificationCode,
+  verifyCode,
+  register,
   login,
   getToken,
   logout,
