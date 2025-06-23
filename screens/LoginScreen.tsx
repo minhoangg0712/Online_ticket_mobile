@@ -15,7 +15,7 @@ import * as Yup from 'yup';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import authService from '../services/auth.service';
+import { useAuth } from '../services/authContext';
 
 type RootParamList = {
   Login: undefined;
@@ -27,8 +27,11 @@ type RootParamList = {
 type LoginScreenNavigationProp = NativeStackNavigationProp<RootParamList, 'Login'>;
 
 const schema = Yup.object().shape({
-  email: Yup.string().email('Email không hợp lệ').required('Vui lòng nhập email'),
-  password: Yup.string().required('Vui lòng nhập mật khẩu'),
+  email: Yup.string()
+    .email('Email không hợp lệ')
+    .required('Vui lòng nhập email'),
+  password: Yup.string()
+    .required('Vui lòng nhập mật khẩu'),
 });
 
 const LoginScreen: React.FC = () => {
@@ -36,6 +39,7 @@ const LoginScreen: React.FC = () => {
   const [showPassword, setShowPassword] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const { login } = useAuth();
 
   const {
     control,
@@ -50,14 +54,24 @@ const LoginScreen: React.FC = () => {
     setIsLoading(true);
     setMessage('');
     try {
-      await authService.login(data.email, data.password);
+      await login(data.email, data.password);
       navigation.replace('Home');
-    } catch (error) {
+    } catch (error: any) {
+      let errMsg = 'Đăng nhập thất bại.';
+
+      const raw = error?.message?.toLowerCase?.() || '';
+
       if (Array.isArray(error)) {
-        setMessage(error.join('\n'));
-      } else {
-        setMessage(error?.message || 'Đăng nhập thất bại.');
+        errMsg = error.join('\n');
+      } else if (raw.includes('user not found') || raw.includes('email')) {
+        errMsg = 'Email không tồn tại trong hệ thống.';
+      } else if (raw.includes('wrong password') || raw.includes('invalid password')) {
+        errMsg = 'Mật khẩu không đúng.';
+      } else if (error?.message) {
+        errMsg = error.message;
       }
+
+      setMessage(errMsg);
     } finally {
       setIsLoading(false);
     }
@@ -65,7 +79,11 @@ const LoginScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header} />
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Icon name="close-circle-outline" size={40} color="white" style={styles.headerIcon} />
+        </TouchableOpacity>
+      </View>
       <View style={styles.formContainer}>
         <Text style={styles.title}>Đăng nhập</Text>
 
@@ -89,6 +107,7 @@ const LoginScreen: React.FC = () => {
           )}
         />
 
+        {/* Password Input */}
         <Controller
           control={control}
           name="password"
@@ -114,15 +133,20 @@ const LoginScreen: React.FC = () => {
           )}
         />
 
-        {/* Message */}
+        {/* Error Message */}
         {message ? <Text style={styles.message}>{message}</Text> : null}
 
         {/* Login Button */}
-        <TouchableOpacity style={styles.button} onPress={handleSubmit(onLogin)} disabled={isLoading}>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={handleSubmit(onLogin)}
+          disabled={isLoading}
+        >
           <Text style={styles.buttonText}>Đăng nhập</Text>
         </TouchableOpacity>
         {isLoading && <ActivityIndicator />}
 
+        {/* Other Actions */}
         <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
           <Text style={styles.forgotPassword}>Quên mật khẩu?</Text>
         </TouchableOpacity>
@@ -132,7 +156,10 @@ const LoginScreen: React.FC = () => {
           <Text style={styles.registerLink}>Tạo tài khoản ngay</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.googleBtn} onPress={() => alert('Tính năng đang phát triển')}>
+        <TouchableOpacity
+          style={styles.googleBtn}
+          onPress={() => alert('Tính năng đang phát triển')}
+        >
           <Image
             source={{
               uri: 'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg',
@@ -154,11 +181,12 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: 'center',
   },
-  title: { 
-    fontSize: 28, 
-    fontWeight: 'bold', 
-    marginVertical: 20, 
-    color: '#000' },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginVertical: 20,
+    color: '#000',
+  },
   input: {
     width: '100%',
     height: 48,
@@ -176,14 +204,14 @@ const styles = StyleSheet.create({
     transform: [{ translateY: -10 }],
     zIndex: 1,
   },
-  error: { 
-    color: 'red', 
-    fontSize: 12 
+  error: {
+    color: 'red',
+    fontSize: 12,
   },
-  message: { 
-    color: '#ff7e42', 
-    textAlign: 'left', 
-    marginBottom: 8 
+  message: {
+    color: '#ff7e42',
+    textAlign: 'center',
+    marginBottom: 8,
   },
   button: {
     width: '100%',
@@ -200,6 +228,12 @@ const styles = StyleSheet.create({
   registerLink: { color: '#FF7E42', marginTop: 4, fontWeight: '600' },
   googleBtn: { marginTop: 20, padding: 8, borderRadius: 8 },
   googleIcon: { width: 36, height: 36, resizeMode: 'contain' },
+  headerIcon: {
+    color: 'white',
+    fontSize: 35,
+    marginTop: 40,
+    marginLeft: 15,
+  },
 });
 
 export default LoginScreen;

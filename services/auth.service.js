@@ -6,11 +6,11 @@ const API_URL = 'http://10.0.2.2:8080/api';
 const sendVerificationCode = async (email) => {
   try {
     const response = await axios.post(`${API_URL}/auth/sendVerificationCode`, { email }, {
-      responseType: 'text'
+      responseType: 'text',
     });
     return response.data;
   } catch (error) {
-    throw error.response?.data || 'Không thể gửi mã xác minh.';
+    throw error.response?.data?.message || 'Không thể gửi mã xác minh.';
   }
 };
 
@@ -32,33 +32,27 @@ const register = async (email, code, fullName, password, confirmPassword) => {
       password,
       confirmPassword,
     }, {
-      responseType: 'text'
+      responseType: 'text',
     });
-
     return response.data;
   } catch (error) {
-    if (error.response && error.response.data) {
-      throw error.response.data.message || 'Đăng ký thất bại.';
-    }
-    throw 'Lỗi kết nối tới server.';
+    throw error.response?.data?.message || 'Đăng ký thất bại.';
   }
 };
 
 const login = async (email, password) => {
   try {
-    const response = await axios.post(`${API_URL}/auth/login`, {
-      email,
-      password,
-    });
+    const response = await axios.post(`${API_URL}/auth/login`, { email, password });
+    const { token } = response.data;
 
-    const token = response.data.token;
-    if (token) {
-      await AsyncStorage.setItem('token', token);
+    if (!token) {
+      throw new Error('Không nhận được token từ server.');
     }
 
+    await AsyncStorage.setItem('token', token);
     return response.data;
   } catch (error) {
-    if (error.response && error.response.data) {
+    if (error.response?.data) {
       if (Array.isArray(error.response.data)) {
         throw error.response.data;
       }
@@ -69,11 +63,21 @@ const login = async (email, password) => {
 };
 
 const getToken = async () => {
-  return await AsyncStorage.getItem('token');
+  try {
+    const token = await AsyncStorage.getItem('token');
+    return token || null;
+  } catch (error) {
+    console.log('Lỗi khi lấy token:', error);
+    return null;
+  }
 };
 
 const logout = async () => {
-  await AsyncStorage.removeItem('token');
+  try {
+    await AsyncStorage.removeItem('token');
+  } catch (error) {
+    console.log('Lỗi khi đăng xuất:', error);
+  }
 };
 
 export default {

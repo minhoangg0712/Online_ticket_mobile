@@ -108,7 +108,11 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-        <View style={styles.header} />
+        <View style={styles.header}>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+                <Icon name="arrow-back-circle-outline" size={40} color="white" style={styles.headerIcon} />
+            </TouchableOpacity>
+        </View>
         <View style={styles.fromContainer}>
         <Text style={styles.title}>Đăng ký</Text>
 
@@ -237,7 +241,7 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   fromContainer: {
     padding: 20,
-    marginTop: 40,
+    marginTop: 20,
     backgroundColor: '#FFF6F2',
     flex: 1,
   },
@@ -246,7 +250,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF7E42',
   },
   header: {
-    height: 100,
+    height: 85,
     backgroundColor: '#FF7E42',
   },
   title: {
@@ -297,5 +301,11 @@ const styles = StyleSheet.create({
     color: '#ff7e42',
     marginTop: 5,
     textAlign: 'center',
+  },
+  headerIcon: {
+    color: 'white',
+    fontSize: 35,
+    marginTop: 40,
+    marginLeft: 15,
   },
 });
