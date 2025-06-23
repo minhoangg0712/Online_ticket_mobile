@@ -4,11 +4,15 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Image,
-  StyleSheet,
   SafeAreaView,
-  Alert,
+  ActivityIndicator,
+  StyleSheet,
+  Image,
 } from 'react-native';
+import { useForm, Controller } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as Yup from 'yup';
+import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import authService from '../services/auth.service';
@@ -17,92 +21,118 @@ type RootParamList = {
   Login: undefined;
   Home: undefined;
   Register: undefined;
+  ForgotPassword: undefined;
 };
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<RootParamList, 'Login'>;
 
+const schema = Yup.object().shape({
+  email: Yup.string().email('Email không hợp lệ').required('Vui lòng nhập email'),
+  password: Yup.string().required('Vui lòng nhập mật khẩu'),
+});
+
 const LoginScreen: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const navigation = useNavigation<LoginScreenNavigationProp>();
+  const [showPassword, setShowPassword] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState('');
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ email và mật khẩu');
-      return;
-    }
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(schema),
+    mode: 'onTouched',
+  });
 
+  const onLogin = async (data: any) => {
+    setIsLoading(true);
+    setMessage('');
     try {
-      const response = await authService.login(email, password);
-      
-      navigation.replace('Home'); //
-    } catch (err) {
-      if (Array.isArray(err)) {
-        Alert.alert('Lỗi xác thực', err.join('\n'));
+      await authService.login(data.email, data.password);
+      navigation.replace('Home');
+    } catch (error) {
+      if (Array.isArray(error)) {
+        setMessage(error.join('\n'));
       } else {
-        Alert.alert('Lỗi', err.toString());
+        setMessage(error?.message || 'Đăng nhập thất bại.');
       }
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  const handleForgotPassword = () => {
-    // Xử lý quên mật khẩu
-    Alert.alert('Thông báo', 'Tính năng đang được phát triển');
-  };
-
-  const handleRegister = () => {
-    // Điều hướng đến màn hình đăng ký
-    navigation.navigate('Register');
-  };
-
-  const handleGoogleLogin = () => {
-    // Xử lý đăng nhập Google
-    Alert.alert('Thông báo', 'Tính năng đăng nhập Google đang được phát triển');
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header} />
-
       <View style={styles.formContainer}>
         <Text style={styles.title}>Đăng nhập</Text>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Nhập địa chỉ email"
-          placeholderTextColor="#888"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Nhập mật khẩu"
-          placeholderTextColor="#888"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          autoCapitalize="none"
-          autoCorrect={false}
+        {/* Email Input */}
+        <Controller
+          control={control}
+          name="email"
+          render={({ field: { onChange, value } }) => (
+            <>
+              <TextInput
+                style={styles.input}
+                placeholder="Nhập email"
+                placeholderTextColor="#888"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                onChangeText={onChange}
+                value={value}
+              />
+              {errors.email && <Text style={styles.error}>{errors.email.message}</Text>}
+            </>
+          )}
         />
 
-        <TouchableOpacity style={styles.button} onPress={handleLogin}>
+        <Controller
+          control={control}
+          name="password"
+          render={({ field: { onChange, value } }) => (
+            <View style={{ width: '100%', position: 'relative' }}>
+              <TextInput
+                style={styles.input}
+                placeholder="Nhập mật khẩu"
+                placeholderTextColor="#888"
+                secureTextEntry={showPassword}
+                onChangeText={onChange}
+                value={value}
+                autoCapitalize="none"
+              />
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.iconEye}
+              >
+                <Icon name={showPassword ? 'eye-off' : 'eye'} size={20} color="#666" />
+              </TouchableOpacity>
+              {errors.password && <Text style={styles.error}>{errors.password.message}</Text>}
+            </View>
+          )}
+        />
+
+        {/* Message */}
+        {message ? <Text style={styles.message}>{message}</Text> : null}
+
+        {/* Login Button */}
+        <TouchableOpacity style={styles.button} onPress={handleSubmit(onLogin)} disabled={isLoading}>
           <Text style={styles.buttonText}>Đăng nhập</Text>
         </TouchableOpacity>
+        {isLoading && <ActivityIndicator />}
 
-        <TouchableOpacity onPress={handleForgotPassword}>
+        <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
           <Text style={styles.forgotPassword}>Quên mật khẩu?</Text>
         </TouchableOpacity>
 
         <Text style={styles.footerText}>Chưa có tài khoản?</Text>
-
-        <TouchableOpacity onPress={handleRegister}>
+        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
           <Text style={styles.registerLink}>Tạo tài khoản ngay</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.googleBtn} onPress={handleGoogleLogin}>
+        <TouchableOpacity style={styles.googleBtn} onPress={() => alert('Tính năng đang phát triển')}>
           <Image
             source={{
               uri: 'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg',
@@ -116,26 +146,19 @@ const LoginScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FF7E42',
-  },
-  header: {
-    height: 100,
-    backgroundColor: '#FF7E42',
-  },
+  container: { flex: 1, backgroundColor: '#FF7E42' },
+  header: { height: 100, backgroundColor: '#FF7E42' },
   formContainer: {
     flex: 1,
     backgroundColor: '#FFF6F2',
     padding: 24,
     alignItems: 'center',
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginVertical: 20,
-    color: '#000',
-  },
+  title: { 
+    fontSize: 28, 
+    fontWeight: 'bold', 
+    marginVertical: 20, 
+    color: '#000' },
   input: {
     width: '100%',
     height: 48,
@@ -146,6 +169,22 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     backgroundColor: '#fff',
   },
+  iconEye: {
+    position: 'absolute',
+    right: 20,
+    top: '50%',
+    transform: [{ translateY: -10 }],
+    zIndex: 1,
+  },
+  error: { 
+    color: 'red', 
+    fontSize: 12 
+  },
+  message: { 
+    color: '#ff7e42', 
+    textAlign: 'left', 
+    marginBottom: 8 
+  },
   button: {
     width: '100%',
     height: 48,
@@ -155,34 +194,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: 16,
   },
-  buttonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  forgotPassword: {
-    color: '#333',
-    marginBottom: 12,
-  },
-  footerText: {
-    marginTop: 8,
-    color: '#333',
-  },
-  registerLink: {
-    color: '#FF7E42',
-    marginTop: 4,
-    fontWeight: '600',
-  },
-  googleBtn: {
-    marginTop: 20,
-    padding: 8,
-    borderRadius: 8,
-  },
-  googleIcon: {
-    width: 36,
-    height: 36,
-    resizeMode: 'contain',
-  },
+  buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
+  forgotPassword: { color: '#333', marginBottom: 12 },
+  footerText: { marginTop: 8, color: '#333' },
+  registerLink: { color: '#FF7E42', marginTop: 4, fontWeight: '600' },
+  googleBtn: { marginTop: 20, padding: 8, borderRadius: 8 },
+  googleIcon: { width: 36, height: 36, resizeMode: 'contain' },
 });
 
 export default LoginScreen;
