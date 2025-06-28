@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Home from '../screens/HomeScreen';
 import Ticket from '../screens/TicketScreen';
 import Profile from '../screens/ProfileScreen';
+import PaymentScreen from '../screens/PaymentScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -24,6 +25,8 @@ const TabNavigator = () => {
             iconName = focused ? 'ticket' : 'ticket-outline';
           } else if (route.name === 'Tài khoản') {
             iconName = focused ? 'person' : 'person-outline';
+          }else if (route.name === 'Thanh toán') {
+            iconName = focused ? 'card' : 'card-outline';
           }
 
           return <Ionicons name={iconName as any} size={size} color={color} />;
@@ -38,7 +41,9 @@ const TabNavigator = () => {
       <Tab.Screen name="Trang chủ" component={Home} />
       <Tab.Screen name="Vé của tôi" component={Ticket} />
       <Tab.Screen name="Tài khoản" component={Profile} />
+      <Tab.Screen name="Thanh toán" component={PaymentScreen} />
     </Tab.Navigator>
+    
   );
 };
 
