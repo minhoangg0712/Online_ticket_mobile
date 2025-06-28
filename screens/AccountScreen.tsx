@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,42 +7,57 @@ import {
   Image,
   StyleSheet,
   ScrollView,
-  SafeAreaView, 
-  Alert
+  SafeAreaView,
+  Alert,
 } from 'react-native';
-import { useEffect } from 'react';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
+import UserService from '../services/user.service';
 
 const AccountScreen = () => {
-  const [fullName, setFullName] = useState('Trần Trung Đức');
-  const [phone, setPhone] = useState('0487673233');
-  const [dob, setDob] = useState('08/10/2004');
-  const [gender, setGender] = useState('male');
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [gender, setGender] = useState('');
+  const [email, setEmail] = useState('');
+  const [imageUri, setImageUri] = useState(null);
   const navigation = useNavigation();
 
-  const [imageUri, setImageUri] = useState(null);
+  // Lấy dữ liệu ban đầu
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const res = await UserService.getCurrentUserProfile();
+        const data = res.data.data;
+        
+        setFullName(data.fullName || '');
+        setPhone(data.phoneNumber || '');
+        setGender((data.gender || ''));
+        setEmail(data.email || '');
+        if (data.avatarUrl) setImageUri(data.avatarUrl);
+      } catch (error) {
+        console.error('Lỗi khi lấy dữ liệu người dùng:', error);
+      }
+    };
+    
+    fetchUserData();
+  }, []);
 
-  const pickImageAsync = async () => {
-    Alert.alert(
-      'Chọn ảnh đại diện',
-      'Bạn muốn chọn ảnh từ đâu?',
-      [
-        { text: 'Thư viện ảnh', onPress: () => openImageLibrary() },
-        { text: 'Chụp ảnh mới', onPress: () => openCamera() },
-        { text: 'Hủy', style: 'cancel' },
-      ]
-    );
+  const pickImageAsync = () => {
+    Alert.alert('Chọn ảnh đại diện', 'Bạn muốn chọn ảnh từ đâu?', [
+      { text: 'Thư viện ảnh', onPress: openImageLibrary },
+      { text: 'Chụp ảnh mới', onPress: openCamera },
+      { text: 'Hủy', style: 'cancel' },
+    ]);
   };
 
   const openImageLibrary = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
     if (status !== 'granted') {
       Alert.alert('Lỗi', 'Cần quyền truy cập thư viện ảnh');
       return;
     }
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -57,7 +72,6 @@ const AccountScreen = () => {
 
   const openCamera = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    
     if (status !== 'granted') {
       Alert.alert('Lỗi', 'Cần quyền truy cập camera');
       return;
@@ -75,15 +89,35 @@ const AccountScreen = () => {
     }
   };
 
-  const imageSource = imageUri 
+  const handleSubmit = async () => {
+    try {
+      // Cập nhật thông tin hồ sơ
+      await UserService.updateUserProfile({
+        fullName,
+        phoneNumber: phone,
+        gender,
+      });
+
+      // Upload ảnh nếu có chọn mới
+      if (imageUri && !imageUri.startsWith('http')) {
+        await UserService.uploadAvatar(imageUri);
+      }
+
+      Alert.alert('Thành công', 'Cập nhật hồ sơ thành công');
+    } catch (error) {
+      console.error('Lỗi cập nhật hồ sơ:', error);
+      Alert.alert('Lỗi', 'Không thể cập nhật hồ sơ do sai định dạng ảnh hoặc thiếu thông tin');
+    }
+  };
+
+  const imageSource = imageUri
     ? { uri: imageUri }
-    : require('../assets/avatar.jpg'); // Điều chỉnh đường dẫn phù hợp
+    : require('../assets/avatar.jpg');
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <View style={styles.card}>
-          {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity onPress={() => navigation.goBack()}>
               <Icon name="arrow-left" size={20} color="white" style={styles.headerIcon} />
@@ -93,7 +127,6 @@ const AccountScreen = () => {
           </View>
 
           <ScrollView contentContainerStyle={styles.form} showsVerticalScrollIndicator={false}>
-            {/* Avatar */}
             <View style={styles.avatarContainer}>
               <Image source={imageSource} style={styles.avatar} />
               <TouchableOpacity style={styles.cameraButton} onPress={pickImageAsync}>
@@ -104,16 +137,9 @@ const AccountScreen = () => {
               </Text>
             </View>
 
-            {/* Full name */}
             <Text style={styles.label}>Họ và tên</Text>
-            <TextInput
-              style={styles.input}
-              value={fullName}
-              onChangeText={setFullName}
-              placeholder=""
-            />
+            <TextInput style={styles.input} value={fullName} onChangeText={setFullName} />
 
-            {/* Phone number */}
             <Text style={styles.label}>Số điện thoại</Text>
             <View style={styles.phoneContainer}>
               <View style={styles.countryCode}>
@@ -124,54 +150,40 @@ const AccountScreen = () => {
                 value={phone}
                 onChangeText={setPhone}
                 keyboardType="phone-pad"
-                placeholder=""
               />
             </View>
 
-            {/* Email */}
             <Text style={styles.label}>Email</Text>
             <View style={styles.disabledInputContainer}>
-              <TextInput
-                style={styles.disabledInput}
-                value="abc@gmail.com"
-                editable={false}
-              />
+              <TextInput style={styles.disabledInput} value={email} editable={false} />
               <TouchableOpacity style={styles.copyButton}>
                 <Icon name="copy" size={16} color="#fb7e3f" />
               </TouchableOpacity>
             </View>
 
-            {/* Date of birth */}
-            <Text style={styles.label}>Ngày tháng năm sinh</Text>
-            <TextInput
-              style={styles.input}
-              value={dob}
-              onChangeText={setDob}
-              placeholder="dd/mm/yyyy"
-            />
-
-            {/* Gender */}
             <Text style={styles.label}>Giới tính</Text>
             <View style={styles.genderContainer}>
-              {['male', 'female', 'other'].map((g) => (
-                <TouchableOpacity
-                  key={g}
-                  style={styles.genderOption}
-                  onPress={() => setGender(g)}
-                >
+              {['Male', 'Female', 'Other'].map((g) => (
+                <TouchableOpacity key={g} style={styles.genderOption} onPress={() => setGender(g)}>
                   <View
                     style={[
                       styles.radioCircle,
                       gender === g && styles.radioChecked,
                     ]}
                   />
-                  <Text>{g === 'male' ? 'Nam' : g === 'female' ? 'Nữ' : 'Khác'}</Text>
+                  <Text>{
+                    g === 'Male'
+                      ? 'Nam'
+                      : g === 'Female'
+                        ? 'Nữ'
+                        : g === 'Other'
+                          ? 'Khác'
+                          : 'Other'
+                  }</Text>
                 </TouchableOpacity>
               ))}
             </View>
-
-            {/* Submit button */}
-            <TouchableOpacity style={styles.submitButton}>
+            <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
               <Text style={styles.submitText}>Hoàn thành</Text>
             </TouchableOpacity>
           </ScrollView>
