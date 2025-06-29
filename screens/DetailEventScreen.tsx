@@ -7,20 +7,20 @@ import {
   StatusBar,
   StyleSheet,
   Dimensions,
-  ImageBackground // ✅ Thêm dòng này
+  ImageBackground
 } from 'react-native';
 import { ArrowLeft, Clock, MapPin } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
-export default function MadameShowBooking() {
+export default function MadameShowBooking({ navigation }) {
   return (
     <View style={styles.container}>
       <StatusBar backgroundColor="#FB923C" barStyle="light-content" />
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton}>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <View style={styles.backCircle}>
             <ArrowLeft size={20} color="#FB923C" />
           </View>
@@ -34,29 +34,28 @@ export default function MadameShowBooking() {
         <View style={styles.cardContainer}>
           <View style={styles.eventCard}>
             <ImageBackground
-  source={{ uri: 'https://your-server.com/path-to-image.jpg' }} // <== link động từ API ở đây
-  style={styles.imageBackground}
-  resizeMode="cover"
->
-  <View style={styles.overlay}>
-    <Text style={styles.eventTitle}>MADAME SHOW - NHỮNG ĐƯỜNG CHIM BAY</Text>
+              source={{ uri: 'https://your-server.com/path-to-image.jpg' }}
+              style={styles.imageBackground}
+              resizeMode="cover"
+            >
+              <View style={styles.overlay}>
+                <Text style={styles.eventTitle}>MADAME SHOW - NHỮNG ĐƯỜNG CHIM BAY</Text>
 
-    <View style={styles.infoRow}>
-      <Clock size={16} color="white" />
-      <Text style={styles.infoText}>18:30 - 19:30, 28 tháng 06, 2025</Text>
-    </View>
+                <View style={styles.infoRow}>
+                  <Clock size={16} color="white" />
+                  <Text style={styles.infoText}>18:30 - 19:30, 28 tháng 06, 2025</Text>
+                </View>
 
-    <View style={styles.infoRow}>
-      <MapPin size={16} color="white" />
-      <Text style={styles.infoText}>Madame de Dalat</Text>
-    </View>
+                <View style={styles.infoRow}>
+                  <MapPin size={16} color="white" />
+                  <Text style={styles.infoText}>Madame de Dalat</Text>
+                </View>
 
-    <Text style={styles.locationText}>
-      Số 2 Yết Kiêu, Phường 5, Thành phố Đà Lạt, Tỉnh Lâm Đồng
-    </Text>
-  </View>
-</ImageBackground>
-
+                <Text style={styles.locationText}>
+                  Số 2 Yết Kiêu, Phường 5, Thành phố Đà Lạt, Tỉnh Lâm Đồng
+                </Text>
+              </View>
+            </ImageBackground>
           </View>
         </View>
 
@@ -79,7 +78,10 @@ export default function MadameShowBooking() {
           <Text style={styles.priceLabel}>Từ </Text>
           <Text style={styles.price}>650.000 đ</Text>
         </View>
-        <TouchableOpacity style={styles.buyButton}>
+        <TouchableOpacity
+          style={styles.buyButton}
+          onPress={() => navigation.navigate('Chọn vé')}
+        >
           <Text style={styles.buyButtonText}>Mua vé ngay</Text>
         </TouchableOpacity>
       </View>
@@ -129,13 +131,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: '#D1D5DB', // tạm thay hình nền
+    backgroundColor: '#D1D5DB',
   },
   imageBackground: {
     height: 300,
     backgroundColor: '#4B5563',
-      justifyContent: 'flex-end', // để overlay nằm dưới
-
+    justifyContent: 'flex-end',
   },
   overlay: {
     position: 'absolute',

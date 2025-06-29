@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function PaymentScreen() {
+export default function PaymentScreen({ navigation }) {
   const [timeLeft, setTimeLeft] = useState({ minutes: 15, seconds: 0 });
 
   useEffect(() => {
@@ -31,7 +31,10 @@ export default function PaymentScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.navigate('Chi tiết sự kiện')}
+        >
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Thanh toán</Text>
@@ -118,7 +121,7 @@ const styles = StyleSheet.create({
       justifyContent: 'center',
  
   },
- backButton: {
+  backButton: {
     position: 'absolute',
     left: 16,
   },
@@ -126,7 +129,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: '600',
-
   },
   content: {
     flex: 1,
@@ -230,7 +232,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   priceAmount: {
-    fontSize: 20,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#FF7E42',
     marginRight: 4,
