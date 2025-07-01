@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import authService from '../services/auth.service';
+import UserService from '../services/user.service';
 
 type RootStackParamList = {
   Profile: undefined;
@@ -21,7 +22,28 @@ type RootStackParamList = {
 
 const ProfileScreen = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const [fullName, setFullName] = useState('');
+  const [imageUri, setImageUri] = useState(null);
 
+  useEffect(() => {
+      const fetchUserData = async () => {
+        try {
+          const res = await UserService.getCurrentUserProfile();
+          const data = res.data.data;
+          setFullName(data.fullName || '');
+          if (data.avatarUrl) setImageUri(data.avatarUrl);
+        } catch (error) {
+          console.error('Lỗi khi lấy dữ liệu người dùng:', error);
+        }
+      };
+      
+      fetchUserData();
+    }, []);
+
+  const imageSource = imageUri
+    ? { uri: imageUri }
+    : require('../assets/avatar.jpg');
+    
   const handleLogout = async () => {
     await authService.logout(); 
     navigation.reset({
@@ -37,7 +59,7 @@ const ProfileScreen = () => {
         <View style={styles.header}>
           <View style={styles.avatarWrapper}>
             <Image
-              source={require('../assets/avatar.jpg')}
+              source={imageSource}
               style={styles.avatar}
             />
           </View>
@@ -45,7 +67,7 @@ const ProfileScreen = () => {
 
         {/* Name */}
         <View style={styles.nameContainer}>
-          <Text style={styles.name}>Nguyễn Minh Hoàng</Text>
+          <Text style={styles.name}>{fullName}</Text>
         </View>
 
         {/* Section Header: Cài đặt tài khoản */}
