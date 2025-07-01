@@ -62,6 +62,20 @@ const login = async (email, password) => {
   }
 };
 
+const googleLogin = async (idToken) => {
+  try {
+    const response = await axios.post(`${API_URL}/auth/google`, { idToken });
+    const { token } = response.data;
+
+    if (!token) throw new Error('Không nhận được token từ server.');
+    await AsyncStorage.setItem('token', token);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data?.message || 'Đăng nhập Google thất bại.';
+  }
+};
+
+
 const getToken = async () => {
   try {
     const token = await AsyncStorage.getItem('token');
@@ -87,4 +101,5 @@ export default {
   login,
   getToken,
   logout,
+  googleLogin,
 };

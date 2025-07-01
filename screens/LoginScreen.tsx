@@ -16,6 +16,9 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../services/authContext';
+import { GoogleSignin} from '@react-native-google-signin/google-signin';
+import authService from '../services/auth.service';
+import { useGoogleAuth } from '../services/googleAuthService'; 
 
 type RootParamList = {
   Login: undefined;
@@ -75,6 +78,28 @@ const LoginScreen: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleGoogleLogin = async () => {
+  try {
+    await GoogleSignin.hasPlayServices();
+    const userInfo = await GoogleSignin.signIn();
+    const tokens = await GoogleSignin.getTokens(); // ✔ Lấy idToken đúng cách
+    const idToken = tokens.idToken;
+
+    if (idToken) {
+      setIsLoading(true);
+      const result = await authService.googleLogin(idToken);
+      navigation.replace('Home');
+    } else {
+      setMessage('Không nhận được ID token từ Google.');
+    }
+  } catch (error) {
+    console.log('Google Login Error:', error);
+    setMessage('Đăng nhập Google thất bại.');
+  } finally {
+    setIsLoading(false);
+  }
   };
 
   return (
@@ -156,14 +181,9 @@ const LoginScreen: React.FC = () => {
           <Text style={styles.registerLink}>Tạo tài khoản ngay</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.googleBtn}
-          onPress={() => alert('Tính năng đang phát triển')}
-        >
+        <TouchableOpacity style={styles.googleBtn} onPress={handleGoogleLogin}>
           <Image
-            source={{
-              uri: 'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg',
-            }}
+            source={require('../assets/Picture/google48.png')}
             style={styles.googleIcon}
           />
         </TouchableOpacity>

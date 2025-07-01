@@ -43,7 +43,8 @@
           "photosPermission": "Ứng dụng cần truy cập thư viện ảnh để chọn ảnh đại diện",
           "cameraPermission": "Ứng dụng cần truy cập camera để chụp ảnh đại diện"
         }
-      ]
+      ],
+      "expo-web-browser"
     ]
   }
 }
