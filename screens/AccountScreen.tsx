@@ -13,7 +13,7 @@ import {
 import Icon from 'react-native-vector-icons/FontAwesome';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
-import UserService from '../services/user.service';
+import UserService from '../services/userService';
 
 const AccountScreen = () => {
   const [fullName, setFullName] = useState('');

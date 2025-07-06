@@ -17,7 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../services/authContext';
 // import { GoogleSignin} from '@react-native-google-signin/google-signin';
-import authService from '../services/auth.service';
+import authService from '../services/authService';
 // import { useGoogleAuth } from '../services/googleAuthService'; 
 
 type RootParamList = {

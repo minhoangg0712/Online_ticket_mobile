@@ -11,8 +11,8 @@ import {
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
-import authService from '../services/auth.service';
-import UserService from '../services/user.service';
+import authService from '../services/authService';
+import UserService from '../services/userService';
 
 type RootStackParamList = {
   Profile: undefined;
