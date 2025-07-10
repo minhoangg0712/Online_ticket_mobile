@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useNavigation } from '@react-navigation/native';
@@ -52,6 +53,22 @@ const ProfileScreen = () => {
     });
   };
 
+  const handleDelete = async () => {
+    try {
+      const response = await UserService.deleteAccount();
+      Alert.alert('Thành công', response.data || 'Tài khoản đã được xoá');
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
+    } catch (error) {
+      console.error('Lỗi xoá tài khoản:', error);
+      const errorMessage =
+        error.response?.data || error.message || 'Không thể xoá tài khoản';
+      Alert.alert('Lỗi', errorMessage);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -83,12 +100,31 @@ const ProfileScreen = () => {
             <Text style={styles.chevron}>▶</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingItem}>
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={() => {             
+              Alert.alert(
+                'Xác nhận xoá',
+                'Bạn có chắc chắn muốn xoá tài khoản?',
+                [
+                  {
+                    text: 'Huỷ',
+                    style: 'cancel',
+                  },
+                  {
+                    text: 'Xoá',
+                    style: 'destructive',
+                    onPress: handleDelete,
+                  },
+                ],
+                { cancelable: true }
+              );
+            }}
+          >
             <Text style={styles.settingText}>Xoá tài khoản</Text>
             <Text style={styles.chevron}>▶</Text>
           </TouchableOpacity>
         </View>
-
 
         <TouchableOpacity style={styles.logoutItem} onPress={handleLogout}>
             <Icon name="sign-out" size={20} color="white" style={styles.logoutIcon} />

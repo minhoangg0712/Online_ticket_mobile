@@ -55,9 +55,18 @@ const uploadAvatar = async (imageUri) => {
   });
 };
 
+export const deleteAccount = async () => {
+  const token = await getToken();
+  return axios.delete(`${API_URL}/users/delete-account`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+};
 
 export default {
   getCurrentUserProfile,
   updateUserProfile,
-  uploadAvatar
+  uploadAvatar,
+  deleteAccount
 };

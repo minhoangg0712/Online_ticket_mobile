@@ -76,6 +76,32 @@ const googleLogin = async (idToken) => {
   }
 };
 
+export const sendCode = async (email) => {
+  try {
+    const response = await axios.post(`${API_URL}/auth/send-code`, { email }, {
+      responseType: 'text',
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || 'Lỗi gửi mã';
+  }
+};
+
+export const resetPassword = async ({ email, code, newPassword, confirmNewPassword }) => {
+  try {
+    const response = await axios.post(`${API_URL}/auth/reset-password-by-code`, {
+      email,
+      code,
+      newPassword,
+      confirmNewPassword
+    }, {
+      responseType: 'text',
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || 'Lỗi đặt lại mật khẩu';
+  }
+};
 
 const getToken = async () => {
   try {
@@ -103,4 +129,6 @@ export default {
   getToken,
   logout,
   googleLogin,
+  sendCode,
+  resetPassword
 };
