@@ -1,3 +1,4 @@
+// screens/Home.js
 import React, { useEffect } from 'react';
 import {
   View,
@@ -19,12 +20,18 @@ import eventService from '../services/eventService';
 console.log('eventService', eventService);
 const { width } = Dimensions.get('window');
 
-type RootStackParamList = {
-  Search: undefined;
-  EventDetail: { eventId: string };
+// Cập nhật TypeScript types để khớp với TabNavigator
+type RootTabParamList = {
+  'Trang chủ': undefined;
+  'Vé của tôi': undefined;
+  'Tài khoản': undefined;
+  'Thanh toán': undefined;
+  'Chọn vé': undefined;
+  'Chi tiết sự kiện': { event: any };
+  'Search': undefined; // Thêm Search vào RootTabParamList
 };
 
-type NavigationProp = BottomTabNavigationProp<RootStackParamList>;
+type NavigationProp = BottomTabNavigationProp<RootTabParamList>;
 
 const Home = () => {
   const navigation = useNavigation<NavigationProp>();
@@ -33,24 +40,22 @@ const Home = () => {
   const [recommendedEvents, setRecommendedEvents] = React.useState<any[]>([]);
 
   useEffect(() => {
-  let isMounted = true;
-  const fetchEvents = async () => {
-    try {
-      const data = await eventService.getRecommendedEvents();
-      if (isMounted) setRecommendedEvents(data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      if (isMounted) setLoading(false);
-    }
-  };
-  fetchEvents();
-  return () => { isMounted = false; };
+    let isMounted = true;
+    const fetchEvents = async () => {
+      try {
+        const data = await eventService.getRecommendedEvents();
+        if (isMounted) setRecommendedEvents(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    fetchEvents();
+    return () => { isMounted = false; };
   }, []);
 
-
   const now = new Date();
-
   const startOfWeek = new Date(now);
   startOfWeek.setDate(now.getDate() - now.getDay());
   startOfWeek.setHours(0, 0, 0, 0);
@@ -74,52 +79,73 @@ const Home = () => {
     return startTime >= startOfMonth && startTime <= endOfMonth;
   });
 
+  // Thêm hàm handleEventPress để lấy chi tiết sự kiện và điều hướng
+  const handleEventPress = async (eventId: string) => {
+    try {
+      const eventDetails = await eventService.getEventDetails(eventId);
+      navigation.navigate('Chi tiết sự kiện', { event: eventDetails });
+    } catch (error) {
+      console.error('Error navigating to event details:', error);
+    }
+  };
 
   const renderBannerSlide = ({ item, index }) => (
-  <View key={`slide-${item.eventId}-${index}`} style={styles.slide}>
-    <Image source={{ uri: item.backgroundUrl }} style={styles.banner} />
-    <View style={styles.bannerGradient}>
-      <TouchableOpacity style={styles.detailButton}
-      onPress={() => navigation.navigate('EventDetail', { eventId: item.eventId })}
-  >
-      <Text style={styles.detailButtonText}>Xem chi tiết</Text>
-      </TouchableOpacity>
+    <View key={`slide-${item.eventId}-${index}`} style={styles.slide}>
+      <Image source={{ uri: item.backgroundUrl }} style={styles.banner} />
+      <View style={styles.bannerGradient}>
+        <TouchableOpacity
+          style={styles.detailButton}
+          onPress={() => handleEventPress(item.eventId)} // Sửa từ 'EventDetail' thành handleEventPress
+        >
+          <Text style={styles.detailButtonText}>Xem chi tiết</Text>
+        </TouchableOpacity>
+      </View>
     </View>
-  </View>
   );
 
   const renderImageOnlyCard = ({ item }) => (
-  <TouchableOpacity style={styles.eventOnlyCard} key={item.eventId}>
-    <Image source={{ uri: item.backgroundUrl }} style={styles.cardOnlyImage} />
-  </TouchableOpacity>
+    <TouchableOpacity
+      style={styles.eventOnlyCard}
+      key={item.eventId}
+      onPress={() => handleEventPress(item.eventId)} // Thêm onPress
+    >
+      <Image source={{ uri: item.backgroundUrl }} style={styles.cardOnlyImage} />
+    </TouchableOpacity>
   );
 
   const renderImageCard = ({ item }) => (
-  <TouchableOpacity style={styles.horizontalImageCard} key={item.eventId}>
-    <Image source={{ uri: item.backgroundUrl }} style={styles.horizontalImage} />
-  </TouchableOpacity>
+    <TouchableOpacity
+      style={styles.horizontalImageCard}
+      key={item.eventId}
+      onPress={() => handleEventPress(item.eventId)} // Thêm onPress
+    >
+      <Image source={{ uri: item.backgroundUrl }} style={styles.horizontalImage} />
+    </TouchableOpacity>
   );
 
-
   const renderEventCard = ({ item }) => (
-  <TouchableOpacity style={styles.eventCard} key={item.eventId}>
-    <View style={styles.cardImageContainer}>
-      <Image source={{ uri: item.backgroundUrl }} style={styles.cardImage} />
-    </View>
-    <View style={styles.cardContent}>
-      <Text style={styles.cardTitle} numberOfLines={1}>{item.eventName}</Text>
-      <View style={styles.cardInfoRow}>
-        <Icon name="calendar" size={12} color="#FF7E42" />
-        <Text style={styles.cardDate}>
-          {new Date(item.startTime).toLocaleDateString()}
+    <TouchableOpacity
+      style={styles.eventCard}
+      key={item.eventId}
+      onPress={() => handleEventPress(item.eventId)} // Thêm onPress
+    >
+      <View style={styles.cardImageContainer}>
+        <Image source={{ uri: item.backgroundUrl }} style={styles.cardImage} />
+      </View>
+      <View style={styles.cardContent}>
+        <Text style={styles.cardTitle} numberOfLines={1}>{item.eventName}</Text>
+        <View style={styles.cardInfoRow}>
+          <Icon name="calendar" size={12} color="#FF7E42" />
+          <Text style={styles.cardDate}>
+            {new Date(item.startTime).toLocaleDateString()}
+          </Text>
+        </View>
+        <Text style={styles.cardPrice}>
+          <Text style={{ fontSize: 15, color: '#FF7E42' }}>Từ </Text>
+          {parseFloat(item.minPrice) > 0 ? `${item.minPrice} VNĐ` : 'Miễn phí'}
         </Text>
       </View>
-      <Text style={styles.cardPrice}>
-        <Text style={{ fontSize: 15, color: '#FF7E42' }}>Từ </Text>
-        {parseFloat(item.minPrice) > 0 ? `${item.minPrice} VNĐ` : 'Miễn phí'}
-      </Text>
-    </View>
-  </TouchableOpacity>
+    </TouchableOpacity>
   );
 
   return (
@@ -132,216 +158,196 @@ const Home = () => {
         <View style={styles.headerRight}>
           <TouchableOpacity
             style={styles.headerIcon}
-            onPress={() => navigation.navigate('Search')}>
+            onPress={() => navigation.navigate('Search')}
+          >
             <Icon name="search" size={25} color="#000" />
           </TouchableOpacity>
         </View>
       </View>
 
       {loading ? (
-          <ActivityIndicator size="large" color="#FF7E42" style={{ marginTop: 50 }} />
-        ) : recommendedEvents.length === 0 ? (
-          <Text style={{ textAlign: 'center', marginTop: 20 }}>
-            Không có sự kiện nào để hiển thị
-          </Text>
-        ) : (
-          
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Banner Swiper */}
-        <View style={styles.swiperContainer}>
-          <Swiper
-            style={styles.swiper}
-            autoplay={true}
-            autoplayTimeout={5}
-            height={250}
-            showsPagination={true}
-            dot={<View style={styles.dot} />}
-            activeDot={<View style={styles.activeDot} />}
-            paginationStyle={styles.pagination}
-            removeClippedSubviews={false}
-            loop={true}
-            index={0}
-          >
-            {recommendedEvents.slice(0, 5).map((item, index) => renderBannerSlide({ item, index }))}
-          </Swiper>
-        </View>
-
-        {/* Sự kiện đặc biệt */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Sự kiện đặc biệt</Text>
+        <ActivityIndicator size="large" color="#FF7E42" style={{ marginTop: 50 }} />
+      ) : recommendedEvents.length === 0 ? (
+        <Text style={{ textAlign: 'center', marginTop: 20 }}>
+          Không có sự kiện nào để hiển thị
+        </Text>
+      ) : (
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {/* Banner Swiper */}
+          <View style={styles.swiperContainer}>
+            <Swiper
+              style={styles.swiper}
+              autoplay={true}
+              autoplayTimeout={5}
+              height={250}
+              showsPagination={true}
+              dot={<View style={styles.dot} />}
+              activeDot={<View style={styles.activeDot} />}
+              paginationStyle={styles.pagination}
+              removeClippedSubviews={false}
+              loop={true}
+              index={0}
+            >
+              {recommendedEvents.slice(0, 5).map((item, index) => renderBannerSlide({ item, index }))}
+            </Swiper>
           </View>
-          <FlatList
-            data={recommendedEvents}
-            horizontal
-            keyExtractor={(item) => `special-${item.eventId}`}
-            showsHorizontalScrollIndicator={false}
-            renderItem={renderImageOnlyCard}
-            contentContainerStyle={styles.eventsContainer}
-          />
-        </View>
 
-        {/* Sự kiện xu hướng */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Sự kiện xu hướng</Text>
+          {/* Sự kiện đặc biệt */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Sự kiện đặc biệt</Text>
+            </View>
+            <FlatList
+              data={recommendedEvents}
+              horizontal
+              keyExtractor={(item) => `special-${item.eventId}`}
+              showsHorizontalScrollIndicator={false}
+              renderItem={renderImageOnlyCard}
+              contentContainerStyle={styles.eventsContainer}
+            />
           </View>
-          <FlatList
-            data={recommendedEvents.slice(0, 3)}
-            horizontal
-            keyExtractor={(item) => `trending-${item.eventId}`}
-            showsHorizontalScrollIndicator={false}
-            renderItem={renderImageCard}
-            contentContainerStyle={styles.eventsContainer}
-          />
-        </View>
 
-        {/* Dành cho bạn */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Dành cho bạn</Text>
+          {/* Sự kiện xu hướng */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Sự kiện xu hướng</Text>
+            </View>
+            <FlatList
+              data={recommendedEvents.slice(0, 3)}
+              horizontal
+              keyExtractor={(item) => `trending-${item.eventId}`}
+              showsHorizontalScrollIndicator={false}
+              renderItem={renderImageCard}
+              contentContainerStyle={styles.eventsContainer}
+            />
           </View>
-          <FlatList
-            data={recommendedEvents}
-            horizontal
-            keyExtractor={(item) => `foryou-${item.eventId}`}
-            showsHorizontalScrollIndicator={false}
-            renderItem={renderEventCard}
-            contentContainerStyle={styles.eventsContainer}
-          />
-        </View>
 
-        {/* Sự kiện theo thời gian */}
-        <View style={styles.section}> 
-          {/* Tab chọn Tuần này / Tháng này */}
-          <View style={styles.timeTabContainer}>
-            {['thisWeek', 'thisMonth'].map((tab) => (
-              <TouchableOpacity
-                key={tab}
-                onPress={() => setTimeTab(tab as 'thisWeek' | 'thisMonth')}
-                style={[styles.timeTabButton,]}
-              >
-                <Text
-                  style={[
-                    styles.timeTabText,
-                    timeTab === tab && styles.timeTabTextSelected,
-                  ]}
+          {/* Dành cho bạn */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Dành cho bạn</Text>
+            </View>
+            <FlatList
+              data={recommendedEvents}
+              horizontal
+              keyExtractor={(item) => `foryou-${item.eventId}`}
+              showsHorizontalScrollIndicator={false}
+              renderItem={renderEventCard}
+              contentContainerStyle={styles.eventsContainer}
+            />
+          </View>
+
+          {/* Sự kiện theo thời gian */}
+          <View style={styles.section}>
+            <View style={styles.timeTabContainer}>
+              {['thisWeek', 'thisMonth'].map((tab) => (
+                <TouchableOpacity
+                  key={tab}
+                  onPress={() => setTimeTab(tab as 'thisWeek' | 'thisMonth')}
+                  style={[styles.timeTabButton,]}
                 >
-                  {tab === 'thisWeek' ? 'Tuần này' : 'Tháng này'}
-                </Text>
-                {timeTab === tab && <View style={styles.timeTabUnderline} />}
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <FlatList
-            data={timeTab === 'thisWeek' ? eventsThisWeek : eventsThisMonth}
-            horizontal
-            keyExtractor={(item, index) => item.eventId?.toString() || index.toString()}
-            showsHorizontalScrollIndicator={false}
-            renderItem={({ item }) => (
-              <TouchableOpacity style={styles.eventCard} key={item.eventId}>
-                <View style={styles.cardImageContainer}>
-                  <Image source={{ uri: item.backgroundUrl }} style={styles.cardImage} />
-                </View>
-                <View style={styles.cardContent}>
-                  <Text style={styles.cardTitle} numberOfLines={1}>{item.eventName}</Text>
-                  <View style={styles.cardInfoRow}>
-                    <Icon name="calendar" size={12} color="#FF7E42" />
-                    <Text style={styles.cardDate}>
-                      {new Date(item.startTime).toLocaleDateString()}
-                    </Text>
-                  </View>
-                  <Text style={styles.cardPrice}>
-                    <Text style={{ fontSize: 15, color: '#FF7E42' }}>Từ </Text>
-                    {parseFloat(item.minPrice) > 0 ? `${item.minPrice} VNĐ` : 'Miễn phí'}
+                  <Text
+                    style={[
+                      styles.timeTabText,
+                      timeTab === tab && styles.timeTabTextSelected,
+                    ]}
+                  >
+                    {tab === 'thisWeek' ? 'Tuần này' : 'Tháng này'}
                   </Text>
-                </View>
-              </TouchableOpacity>
-            )}
-            contentContainerStyle={styles.eventsContainer}
-          />
-        </View>
+                  {timeTab === tab && <View style={styles.timeTabUnderline} />}
+                </TouchableOpacity>
+              ))}
+            </View>
 
-        {/* Các danh mục sự kiện */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Âm nhạc</Text>
+            <FlatList
+              data={timeTab === 'thisWeek' ? eventsThisWeek : eventsThisMonth}
+              horizontal
+              keyExtractor={(item, index) => item.eventId?.toString() || index.toString()}
+              showsHorizontalScrollIndicator={false}
+              renderItem={renderEventCard} // Sử dụng renderEventCard đã có onPress
+              contentContainerStyle={styles.eventsContainer}
+            />
           </View>
-          <FlatList
-            data={recommendedEvents.filter(event => event.category === 'Âm nhạc')}
-            horizontal
-            keyExtractor={(item, index) => item.eventId ? `music-${item.eventId}` : `music-${index}`}
-            showsHorizontalScrollIndicator={false}
-            renderItem={renderEventCard}
-            contentContainerStyle={styles.eventsContainer}
-          />
-        </View>
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Sân khấu và nghệ thuật</Text>
+
+          {/* Các danh mục sự kiện */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Âm nhạc</Text>
+            </View>
+            <FlatList
+              data={recommendedEvents.filter(event => event.category === 'Âm nhạc')}
+              horizontal
+              keyExtractor={(item, index) => item.eventId ? `music-${item.eventId}` : `music-${index}`}
+              showsHorizontalScrollIndicator={false}
+              renderItem={renderEventCard}
+              contentContainerStyle={styles.eventsContainer}
+            />
           </View>
-          <FlatList
-            data={recommendedEvents.filter(event => event.category === 'Sân khấu và nghệ thuật')}
-            horizontal
-            keyExtractor={(item, index) => item.eventId ? `Theatre-Arts-${item.eventId}` : `Theatre-Arts-${index}`}
-            showsHorizontalScrollIndicator={false}
-            renderItem={renderEventCard}
-            contentContainerStyle={styles.eventsContainer}
-          />
-        </View>
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Workshop</Text>
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Sân khấu và nghệ thuật</Text>
+            </View>
+            <FlatList
+              data={recommendedEvents.filter(event => event.category === 'Sân khấu và nghệ thuật')}
+              horizontal
+              keyExtractor={(item, index) => item.eventId ? `Theatre-Arts-${item.eventId}` : `Theatre-Arts-${index}`}
+              showsHorizontalScrollIndicator={false}
+              renderItem={renderEventCard}
+              contentContainerStyle={styles.eventsContainer}
+            />
           </View>
-          <FlatList
-            data={recommendedEvents.filter(event => event.category === 'Workshop')}
-            horizontal
-            keyExtractor={(item, index) => item.eventId ? `workshop-${item.eventId}` : `workshop-${index}`}
-            showsHorizontalScrollIndicator={false}
-            renderItem={renderEventCard}
-            contentContainerStyle={styles.eventsContainer}
-          />
-        </View>
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Thể thao</Text>
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Workshop</Text>
+            </View>
+            <FlatList
+              data={recommendedEvents.filter(event => event.category === 'Workshop')}
+              horizontal
+              keyExtractor={(item, index) => item.eventId ? `workshop-${item.eventId}` : `workshop-${index}`}
+              showsHorizontalScrollIndicator={false}
+              renderItem={renderEventCard}
+              contentContainerStyle={styles.eventsContainer}
+            />
           </View>
-          <FlatList
-            data={recommendedEvents.filter(event => event.category === 'Thể thao')}
-            horizontal
-            keyExtractor={(item, index) => item.eventId ? `Thể thao-${item.eventId}` : `Thể thao-${index}`}
-            showsHorizontalScrollIndicator={false}
-            renderItem={renderEventCard}
-            contentContainerStyle={styles.eventsContainer}
-          />
-        </View>
-        <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Khác</Text>
-        </View>
-        <FlatList
-          data={recommendedEvents.filter(
-            event =>
-              ![
-                'Âm nhạc',
-                'Sân khấu và nghệ thuật',
-                'Workshop',
-                'Thể thao'
-              ].includes(event.category)
-          )}
-          horizontal
-          keyExtractor={(item, index) =>
-            item.eventId ? `Khác-${item.eventId}` : `Khác-${index}`
-          }
-          showsHorizontalScrollIndicator={false}
-          renderItem={renderEventCard}
-          contentContainerStyle={styles.eventsContainer}
-        />
-      </View>
-      <View style={styles.bottomSpace} />
-      </ScrollView>
-    )}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Thể thao</Text>
+            </View>
+            <FlatList
+              data={recommendedEvents.filter(event => event.category === 'Thể thao')}
+              horizontal
+              keyExtractor={(item, index) => item.eventId ? `Thể thao-${item.eventId}` : `Thể thao-${index}`}
+              showsHorizontalScrollIndicator={false}
+              renderItem={renderEventCard}
+              contentContainerStyle={styles.eventsContainer}
+            />
+          </View>
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Khác</Text>
+            </View>
+            <FlatList
+              data={recommendedEvents.filter(
+                event =>
+                  ![
+                    'Âm nhạc',
+                    'Sân khấu và nghệ thuật',
+                    'Workshop',
+                    'Thể thao'
+                  ].includes(event.category)
+              )}
+              horizontal
+              keyExtractor={(item, index) =>
+                item.eventId ? `Khác-${item.eventId}` : `Khác-${index}`
+              }
+              showsHorizontalScrollIndicator={false}
+              renderItem={renderEventCard}
+              contentContainerStyle={styles.eventsContainer}
+            />
+          </View>
+          <View style={styles.bottomSpace} />
+        </ScrollView>
+      )}
     </View>
   );
 };
@@ -523,10 +529,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   timeTabButton: {
-  paddingVertical: 6,
-  paddingHorizontal: 10,
-  marginHorizontal: 6,
-  position: 'relative',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    marginHorizontal: 6,
+    position: 'relative',
   },
   timeTabText: {
     fontSize: 16,
@@ -547,12 +553,12 @@ const styles = StyleSheet.create({
   },
   timeGrid: {
     paddingHorizontal: 20,
-    flexDirection: 'row', // Ensure horizontal layout
-    justifyContent: 'space-between', // Distribute images evenly
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
   timeImageBox: {
-    width: width * 0.65, 
+    width: width * 0.65,
     backgroundColor: '#fff6f2',
     marginHorizontal: 8,
     borderRadius: 16,
@@ -562,7 +568,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 150,
     resizeMode: 'cover',
-    borderRadius: 0, 
+    borderRadius: 0,
   },
 });
 

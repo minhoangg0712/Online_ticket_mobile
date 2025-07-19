@@ -1,3 +1,4 @@
+// screens/DetailEventScreen.tsx
 import React from 'react';
 import {
   View,
@@ -7,13 +8,68 @@ import {
   StatusBar,
   StyleSheet,
   Dimensions,
-  ImageBackground
+  ImageBackground,
 } from 'react-native';
 import { ArrowLeft, Clock, MapPin } from 'lucide-react-native';
+import { RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 const { width } = Dimensions.get('window');
 
-export default function MadameShowBooking({ navigation }) {
+// Định nghĩa type cho navigation params
+type RootStackParamList = {
+  EventDetail: { event: any }; // Có thể định nghĩa type chi tiết hơn nếu cần
+};
+
+// Định nghĩa type cho navigation và route
+type DetailEventScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'EventDetail'>;
+type DetailEventScreenRouteProp = RouteProp<RootStackParamList, 'EventDetail'>;
+
+interface Props {
+  navigation: DetailEventScreenNavigationProp;
+  route: DetailEventScreenRouteProp;
+}
+
+const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
+  const { event } = route.params || {}; // Lấy dữ liệu sự kiện từ navigation, thêm kiểm tra route.params
+
+  // Kiểm tra nếu không có event
+  if (!event) {
+    return (
+      <View style={styles.container}>
+        <Text style={{ textAlign: 'center', marginTop: 20 }}>
+          Vui lòng chọn một sự kiện từ Trang chủ
+        </Text>
+      </View>
+    );
+  }
+
+  // Lấy giá vé dựa trên ticketsSold
+  const getPriceDisplay = () => {
+    if (!event.ticketPrices || Object.keys(event.ticketPrices).length === 0) {
+      return { displayPrice: 'Miễn phí', originalPrice: null };
+    }
+
+    const ticketKeys = Object.keys(event.ticketPrices);
+    const soldKeys = ticketKeys.filter((key) => event.ticketsSold?.[key] > 0);
+    const minOriginalPrice = Math.min(...ticketKeys.map((key) => Number(event.ticketPrices[key])));
+
+    if (soldKeys.length > 0) {
+      // Có vé đã bán, lấy giá nhỏ nhất từ các loại vé đã bán
+      const soldPrices = soldKeys.map((key) => Number(event.ticketPrices[key]));
+      const minSoldPrice = Math.min(...soldPrices);
+      return {
+        displayPrice: `${minSoldPrice} VNĐ`,
+        originalPrice: minSoldPrice < minOriginalPrice ? `${minOriginalPrice} VNĐ` : null,
+      };
+    } else {
+      // Không có vé đã bán, hiển thị giá gốc
+      return { displayPrice: `${minOriginalPrice} VNĐ`, originalPrice: null };
+    }
+  };
+
+  const { displayPrice, originalPrice } = getPriceDisplay();
+
   return (
     <View style={styles.container}>
       <StatusBar backgroundColor="#FB923C" barStyle="light-content" />
@@ -34,26 +90,36 @@ export default function MadameShowBooking({ navigation }) {
         <View style={styles.cardContainer}>
           <View style={styles.eventCard}>
             <ImageBackground
-              source={{ uri: 'https://your-server.com/path-to-image.jpg' }}
+              source={{ uri: event.backgroundUrl || 'https://via.placeholder.com/300' }} // Fallback image
               style={styles.imageBackground}
               resizeMode="cover"
             >
               <View style={styles.overlay}>
-                <Text style={styles.eventTitle}>MADAME SHOW - NHỮNG ĐƯỜNG CHIM BAY</Text>
+                <Text style={styles.eventTitle}>{event.eventName}</Text>
 
                 <View style={styles.infoRow}>
                   <Clock size={16} color="white" />
-                  <Text style={styles.infoText}>18:30 - 19:30, 28 tháng 06, 2025</Text>
+                  <Text style={styles.infoText}>
+                    {new Date(event.startTime).toLocaleString('vi-VN', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                    })} -{' '}
+                    {new Date(event.endTime).toLocaleString('vi-VN', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </Text>
                 </View>
 
                 <View style={styles.infoRow}>
                   <MapPin size={16} color="white" />
-                  <Text style={styles.infoText}>Madame de Dalat</Text>
+                  <Text style={styles.infoText}>{event.address}</Text>
                 </View>
 
-                <Text style={styles.locationText}>
-                  Số 2 Yết Kiêu, Phường 5, Thành phố Đà Lạt, Tỉnh Lâm Đồng
-                </Text>
+                <Text style={styles.locationText}>{event.address}</Text>
               </View>
             </ImageBackground>
           </View>
@@ -62,11 +128,15 @@ export default function MadameShowBooking({ navigation }) {
         {/* Giới thiệu */}
         <View style={styles.detailsContainer}>
           <Text style={styles.sectionTitle}>Giới thiệu</Text>
-          <Text style={styles.eventName}>MADAME SHOW</Text>
-          <Text style={styles.description}>
-            Với sân khấu độc đáo trên nền hồ nước nóng đầy bí ẩn của khu biệt thự Bạch
-            Ngọc cổ kính, Madame Show là không
-          </Text>
+          <Text style={styles.eventName}>{event.eventName}</Text>
+          <Text style={styles.description}>{event.description}</Text>
+
+          {/* Lý do từ chối (nếu có) */}
+          {event.rejectReason && (
+            <View style={styles.infoRow}>
+              <Text style={styles.rejectReason}>Lý do từ chối: {event.rejectReason}</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.bottomPadding} />
@@ -76,18 +146,21 @@ export default function MadameShowBooking({ navigation }) {
       <View style={styles.bottomSection}>
         <View style={styles.priceContainer}>
           <Text style={styles.priceLabel}>Từ </Text>
-          <Text style={styles.price}>650.000 đ</Text>
+          {originalPrice && (
+            <Text style={styles.originalPrice}>{originalPrice}</Text>
+          )}
+          <Text style={styles.price}>{displayPrice}</Text>
         </View>
         <TouchableOpacity
           style={styles.buyButton}
-          onPress={() => navigation.navigate('Chọn vé')}
+          onPress={() => navigation.navigate('EventDetail', { event })}
         >
           <Text style={styles.buyButtonText}>Mua vé ngay</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -175,6 +248,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 8,
+    marginTop: 16,
   },
   eventName: {
     color: '#111827',
@@ -186,6 +260,11 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontSize: 14,
     lineHeight: 20,
+  },
+  rejectReason: {
+    color: '#FF0000',
+    fontSize: 14,
+    marginTop: 8,
   },
   bottomPadding: {
     height: 80,
@@ -217,6 +296,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
+  originalPrice: {
+    color: '#6B7280',
+    fontSize: 14,
+    textDecorationLine: 'line-through', // Gạch bỏ giá gốc
+    marginRight: 8,
+  },
   buyButton: {
     backgroundColor: '#FB923C',
     paddingHorizontal: 24,
@@ -229,3 +314,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
+export default DetailEventScreen;
