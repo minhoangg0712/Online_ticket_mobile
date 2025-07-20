@@ -1,3 +1,4 @@
+
 // screens/DetailEventScreen.tsx
 import React from 'react';
 import {
@@ -18,12 +19,14 @@ const { width } = Dimensions.get('window');
 
 // Định nghĩa type cho navigation params
 type RootStackParamList = {
-  EventDetail: { event: any }; // Có thể định nghĩa type chi tiết hơn nếu cần
+  'Chi tiết sự kiện': { event: any };
+  'Chọn vé': { event: any };
+  'Thanh toán': { eventId: number; tickets: { ticketId: number; quantity: number }[] };
 };
 
 // Định nghĩa type cho navigation và route
-type DetailEventScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'EventDetail'>;
-type DetailEventScreenRouteProp = RouteProp<RootStackParamList, 'EventDetail'>;
+type DetailEventScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Chi tiết sự kiện'>;
+type DetailEventScreenRouteProp = RouteProp<RootStackParamList, 'Chi tiết sự kiện'>;
 
 interface Props {
   navigation: DetailEventScreenNavigationProp;
@@ -90,7 +93,7 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
         <View style={styles.cardContainer}>
           <View style={styles.eventCard}>
             <ImageBackground
-              source={{ uri: event.backgroundUrl || 'https://via.placeholder.com/300' }} // Fallback image
+              source={{ uri: event.backgroundUrl || 'https://via.placeholder.com/300' }}
               style={styles.imageBackground}
               resizeMode="cover"
             >
@@ -131,12 +134,6 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
           <Text style={styles.eventName}>{event.eventName}</Text>
           <Text style={styles.description}>{event.description}</Text>
 
-          {/* Lý do từ chối (nếu có) */}
-          {event.rejectReason && (
-            <View style={styles.infoRow}>
-              <Text style={styles.rejectReason}>Lý do từ chối: {event.rejectReason}</Text>
-            </View>
-          )}
         </View>
 
         <View style={styles.bottomPadding} />
@@ -153,7 +150,7 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
         </View>
         <TouchableOpacity
           style={styles.buyButton}
-          onPress={() => navigation.navigate('EventDetail', { event })}
+          onPress={() => navigation.navigate('Chọn vé', { event })}
         >
           <Text style={styles.buyButtonText}>Mua vé ngay</Text>
         </TouchableOpacity>
@@ -299,7 +296,7 @@ const styles = StyleSheet.create({
   originalPrice: {
     color: '#6B7280',
     fontSize: 14,
-    textDecorationLine: 'line-through', // Gạch bỏ giá gốc
+    textDecorationLine: 'line-through',
     marginRight: 8,
   },
   buyButton: {

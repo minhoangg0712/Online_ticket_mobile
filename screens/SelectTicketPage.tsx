@@ -1,3 +1,5 @@
+
+// screens/SelectTicketPage.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -5,35 +7,81 @@ import {
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
-  Dimensions
+  Dimensions,
 } from 'react-native';
 import { ChevronLeft, Minus, Plus } from 'lucide-react-native';
+import { RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 const { width } = Dimensions.get('window');
 
-export default function VIPTicketSelection() {
-  const [quantities, setQuantities] = useState([0, 0]);
+// Định nghĩa type cho navigation params
+type RootStackParamList = {
+  'Chi tiết sự kiện': { event: any };
+  'Chọn vé': { event: any };
+  'Thanh toán': { eventId: number; tickets: { ticketId: number; quantity: number }[]; event: any };
+  'Vé của tôi': undefined;
+};
 
-  const updateQuantity = (index, change) => {
-    setQuantities(prev => {
+// Định nghĩa type cho navigation và route
+type SelectTicketPageNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Chọn vé'>;
+type SelectTicketPageRouteProp = RouteProp<RootStackParamList, 'Chọn vé'>;
+
+interface Props {
+  navigation: SelectTicketPageNavigationProp;
+  route: SelectTicketPageRouteProp;
+}
+
+const SelectTicketPage: React.FC<Props> = ({ navigation, route }) => {
+  const { event } = route.params || {};
+  
+  // Kiểm tra nếu không có event
+  if (!event || !event.ticketPrices) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Text style={{ textAlign: 'center', marginTop: 20 }}>
+          Không có dữ liệu sự kiện hoặc vé
+        </Text>
+      </SafeAreaView>
+    );
+  }
+
+  // Khởi tạo quantities dựa trên số lượng loại vé
+  const ticketTypes = Object.keys(event.ticketPrices);
+  const [quantities, setQuantities] = useState<number[]>(new Array(ticketTypes.length).fill(0));
+
+  const updateQuantity = (index: number, change: number) => {
+    setQuantities((prev) => {
       const newQuantities = [...prev];
-      newQuantities[index] = Math.max(0, newQuantities[index] + change);
+      const maxAvailable = event.ticketsTotal?.[ticketTypes[index]] || 100; // Giới hạn số vé còn lại
+      newQuantities[index] = Math.max(0, Math.min(maxAvailable, newQuantities[index] + change));
       return newQuantities;
     });
   };
 
   const totalQuantity = quantities.reduce((sum, qty) => sum + qty, 0);
 
+  // Tạo danh sách tickets để gửi sang PaymentPage
+  const tickets = ticketTypes
+    .map((type, index) => ({
+      ticketId: index + 1, // Giả định ticketId, cần thay bằng dữ liệu thực từ API
+      quantity: quantities[index],
+    }))
+    .filter((ticket) => ticket.quantity > 0);
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton}>
-  <View style={styles.circle}>
-    <ChevronLeft size={20} color="#374151" />
-  </View>
-</TouchableOpacity>
-
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <View style={styles.circle}>
+            <ChevronLeft size={20} color="#374151" />
+          </View>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Chọn số lượng vé</Text>
       </View>
 
       {/* Content */}
@@ -44,64 +92,40 @@ export default function VIPTicketSelection() {
           <Text style={styles.headerText}>Số lượng</Text>
         </View>
 
-        {/* VIP Tickets */}
+        {/* Ticket List */}
         <View style={styles.ticketList}>
-          {/* First VIP Option */}
-          <View style={styles.ticketRow}>
-            <View style={styles.ticketInfo}>
-              <Text style={styles.ticketTitle}>VIP</Text>
-              <Text style={styles.ticketPrice}>2.000.000 đ</Text>
-            </View>
-            <View style={styles.quantityControls}>
-              <TouchableOpacity 
-                onPress={() => updateQuantity(0, -1)}
-                style={[
-                  styles.quantityButton,
-                  quantities[0] === 0 && styles.disabledButton
-                ]}
-                disabled={quantities[0] === 0}
-              >
-                <Minus size={16} color="#4B5563" />
-              </TouchableOpacity>
-              <Text style={styles.quantityText}>{quantities[0]}</Text>
-              <TouchableOpacity 
-                onPress={() => updateQuantity(0, 1)}
-                style={styles.quantityButton}
-              >
-                <Plus size={16} color="#4B5563" />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Divider */}
-          <View style={styles.divider} />
-
-          {/* Second VIP Option */}
-          <View style={styles.ticketRow}>
-            <View style={styles.ticketInfo}>
-              <Text style={styles.ticketTitle}>VIP</Text>
-              <Text style={styles.ticketPrice}>2.000.000 đ</Text>
-            </View>
-            <View style={styles.quantityControls}>
-              <TouchableOpacity 
-                onPress={() => updateQuantity(1, -1)}
-                style={[
-                  styles.quantityButton,
-                  quantities[1] === 0 && styles.disabledButton
-                ]}
-                disabled={quantities[1] === 0}
-              >
-                <Minus size={16} color="#4B5563" />
-              </TouchableOpacity>
-              <Text style={styles.quantityText}>{quantities[1]}</Text>
-              <TouchableOpacity 
-                onPress={() => updateQuantity(1, 1)}
-                style={styles.quantityButton}
-              >
-                <Plus size={16} color="#4B5563" />
-              </TouchableOpacity>
-            </View>
-          </View>
+          {ticketTypes.map((type, index) => (
+            <React.Fragment key={type}>
+              <View style={styles.ticketRow}>
+                <View style={styles.ticketInfo}>
+                  <Text style={styles.ticketTitle}>{type}</Text>
+                  <Text style={styles.ticketPrice}>
+                    {Number(event.ticketPrices[type]).toLocaleString('vi-VN')} đ
+                  </Text>
+                </View>
+                <View style={styles.quantityControls}>
+                  <TouchableOpacity
+                    onPress={() => updateQuantity(index, -1)}
+                    style={[
+                      styles.quantityButton,
+                      quantities[index] === 0 && styles.disabledButton,
+                    ]}
+                    disabled={quantities[index] === 0}
+                  >
+                    <Minus size={16} color="#4B5563" />
+                  </TouchableOpacity>
+                  <Text style={styles.quantityText}>{quantities[index]}</Text>
+                  <TouchableOpacity
+                    onPress={() => updateQuantity(index, 1)}
+                    style={styles.quantityButton}
+                  >
+                    <Plus size={16} color="#4B5563" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+              {index < ticketTypes.length - 1 && <View style={styles.divider} />}
+            </React.Fragment>
+          ))}
         </View>
       </View>
 
@@ -112,170 +136,177 @@ export default function VIPTicketSelection() {
           <View style={styles.eventDetails}>
             <Text style={styles.eventEmoji}>🎭</Text>
             <View style={styles.eventText}>
-              <Text style={styles.eventTitle}>MADAME SHOW - NHỮNG ĐƯỜNG CHIM BAY</Text>
-              <Text style={styles.eventTime}>19:30 - 19:30 Thứng 06 năm 2025</Text>
+              <Text style={styles.eventTitle}>{event.eventName}</Text>
+              <Text style={styles.eventTime}>
+                {new Date(event.startTime).toLocaleString('vi-VN', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                })}
+              </Text>
             </View>
           </View>
         </View>
 
         {/* Action Button */}
         <View style={styles.buttonContainer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[
               styles.actionButton,
-              totalQuantity > 0 ? styles.activeButton : styles.inactiveButton
+              totalQuantity > 0 ? styles.activeButton : styles.inactiveButton,
             ]}
             disabled={totalQuantity === 0}
+            onPress={() =>
+              navigation.navigate('Thanh toán', {
+                eventId: event.eventId,
+                tickets,
+                event, // Truyền thêm event để hiển thị thông tin
+              })
+            }
           >
-            <Text style={[
-              styles.buttonText,
-              totalQuantity > 0 ? styles.activeButtonText : styles.inactiveButtonText
-            ]}>
-              Vui lòng chọn vé
+            <Text
+              style={[
+                styles.buttonText,
+                totalQuantity > 0 ? styles.activeButtonText : styles.inactiveButtonText,
+              ]}
+            >
+              Tiếp tục
             </Text>
           </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fdf2f8',
+    backgroundColor: '#F9FAFB',
   },
-  circle: {
-  width: 36,
-  height: 36,
-  borderRadius: 18,
-  backgroundColor: '#ffffff',
-  borderWidth: 1,
-  borderColor: '#d1d5db',
-  justifyContent: 'center',
-  alignItems: 'center',
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 1 },
-  shadowOpacity: 0.1,
-  shadowRadius: 1,
-  elevation: 2, // Android
-},
-
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#fdf2f8',
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
   backButton: {
-    padding: 8,
+    marginRight: 10,
+  },
+  circle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#E5E7EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
   },
   content: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingBottom: 140,
+    paddingTop: 20,
   },
   sectionHeaders: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 16,
   },
   headerText: {
-    fontSize: 18,
-    fontWeight: '500',
-    color: '#1f2937',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
   },
   ticketList: {
-    gap: 24,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 16,
   },
   ticketRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingVertical: 12,
   },
   ticketInfo: {
     flex: 1,
   },
   ticketTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '500',
     color: '#111827',
   },
   ticketPrice: {
-    fontSize: 16,
-    color: '#4b5563',
-    marginTop: 2,
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 4,
   },
   quantityControls: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
   },
   quantityButton: {
     width: 32,
     height: 32,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 4,
-    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    backgroundColor: '#E5E7EB',
     justifyContent: 'center',
     alignItems: 'center',
   },
   disabledButton: {
-    opacity: 0.5,
+    backgroundColor: '#F3F4F6',
   },
   quantityText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '500',
-    minWidth: 32,
-    textAlign: 'center',
+    color: '#111827',
+    marginHorizontal: 16,
   },
   divider: {
     height: 1,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: '#E5E7EB',
   },
   bottomSection: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#ffffff',
+    padding: 16,
+    backgroundColor: '#fff',
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: '#E5E7EB',
   },
   eventInfo: {
-    backgroundColor: '#6b7280',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    marginBottom: 16,
   },
   eventDetails: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
   },
   eventEmoji: {
-    fontSize: 14,
+    fontSize: 24,
+    marginRight: 8,
   },
   eventText: {
-    alignItems: 'center',
+    flex: 1,
   },
   eventTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#ffffff',
-    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
   },
   eventTime: {
-    fontSize: 12,
-    color: '#ffffff',
-    opacity: 0.9,
-    textAlign: 'center',
-    marginTop: 2,
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 4,
   },
   buttonContainer: {
-    padding: 16,
+    alignItems: 'center',
   },
   actionButton: {
     width: '100%',
@@ -284,19 +315,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   activeButton: {
-    backgroundColor: '#f97316',
+    backgroundColor: '#FB923C',
   },
   inactiveButton: {
-    backgroundColor: '#d1d5db',
+    backgroundColor: '#E5E7EB',
   },
   buttonText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   activeButtonText: {
-    color: '#ffffff',
+    color: '#fff',
   },
   inactiveButtonText: {
-    color: '#6b7280',
+    color: '#6B7280',
   },
 });
+export default SelectTicketPage;

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -6,26 +7,120 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
+  TextInput,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function PaymentScreen({ navigation }) {
+// Sử dụng IP máy hoặc 10.0.2.2 cho emulator
+const API_URL = 'http://10.0.2.2:8080/api/orders'; // Thay bằng IP máy nếu chạy trên thiết bị vật lý
+
+// Định nghĩa type cho navigation params
+type RootStackParamList = {
+  'Chi tiết sự kiện': { event: any };
+  'Chọn vé': { event: any };
+  'Thanh toán': { eventId: number; tickets: { ticketId: number; quantity: number }[]; event: any };
+  'Vé của tôi': undefined;
+};
+
+// Định nghĩa type cho navigation và route
+type PaymentScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Thanh toán'>;
+type PaymentScreenRouteProp = RouteProp<RootStackParamList, 'Thanh toán'>;
+
+interface Props {
+  navigation: PaymentScreenNavigationProp;
+  route: PaymentScreenRouteProp;
+}
+
+export default function PaymentScreen({ navigation, route }: Props) {
+  const { eventId, tickets, event } = route.params || {};
   const [timeLeft, setTimeLeft] = useState({ minutes: 15, seconds: 0 });
+  const [discountCode, setDiscountCode] = useState('');
+  const [loading, setLoading] = useState(false);
 
+  // Bộ đếm thời gian
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeLeft(prev => {
+      setTimeLeft((prev) => {
         if (prev.seconds > 0) {
           return { ...prev, seconds: prev.seconds - 1 };
         } else if (prev.minutes > 0) {
           return { minutes: prev.minutes - 1, seconds: 59 };
         }
+        clearInterval(timer);
+        Alert.alert('Hết thời gian', 'Thời gian đặt vé đã hết. Vui lòng thử lại.');
+        navigation.goBack();
         return prev;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [navigation]);
+
+  // Tính tổng tiền
+  const totalAmount = tickets && event?.ticketPrices
+    ? tickets.reduce((sum, ticket) => {
+        const ticketType = Object.keys(event.ticketPrices)[ticket.ticketId - 1]; // Giả định ticketId bắt đầu từ 1
+        const price = Number(event.ticketPrices[ticketType] || 0);
+        return sum + ticket.quantity * price;
+      }, 0)
+    : 0;
+
+  // Xử lý thanh toán
+  const handlePayment = async () => {
+    if (!eventId || !tickets || tickets.length === 0) {
+      Alert.alert('Lỗi', 'Không có thông tin vé hoặc sự kiện');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      console.log('Token:', token);
+      if (!token) {
+        throw new Error('Token not found');
+      }
+      const body = { eventId, tickets, discountCode: discountCode || undefined };
+      console.log('Request body:', body);
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`, // Thêm dấu phẩy
+        },
+        body: JSON.stringify(body),
+      });
+      console.log('Response status:', response.status);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API error: ${errorText}`);
+      }
+      const result = await response.json();
+      console.log('Response data:', result);
+      Alert.alert('Thành công', 'Đơn hàng đã được tạo thành công!');
+      navigation.navigate('Vé của tôi');
+    } catch (error) {
+      console.error('Payment error:', error);
+      Alert.alert('Lỗi', `Không thể tạo đơn hàng: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Kiểm tra nếu không có dữ liệu
+  if (!event || !eventId || !tickets) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Text style={{ textAlign: 'center', marginTop: 20 }}>
+          Không có dữ liệu sự kiện hoặc vé
+        </Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -33,7 +128,7 @@ export default function PaymentScreen({ navigation }) {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => navigation.navigate('Chi tiết sự kiện')}
+          onPress={() => navigation.goBack()}
         >
           <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
@@ -43,19 +138,56 @@ export default function PaymentScreen({ navigation }) {
       <ScrollView style={styles.content}>
         {/* Event Info */}
         <View style={styles.eventInfo}>
-          <Text style={styles.eventTitle}>MADAME SHOW - NHỮNG ĐƯỜNG CHIM BAY</Text>
+          <Text style={styles.eventTitle}>{event.eventName}</Text>
           
           <View style={styles.infoRow}>
             <Ionicons name="location-outline" size={16} color="white" />
-            <Text style={styles.infoText}>Madame de Dalat</Text>
+            <Text style={styles.infoText}>{event.address}</Text>
           </View>
           
           <View style={styles.infoRow}>
             <Ionicons name="calendar-outline" size={16} color="white" />
-            <Text style={styles.infoText}>Thứ 2 - Thứ 5: Tháng 3,6,9,12,4,7,1, Tháng 1,4m Đông</Text>
+            <Text style={styles.infoText}>
+              {new Date(event.startTime).toLocaleString('vi-VN', {
+                weekday: 'long',
+                month: 'long',
+                day: '2-digit',
+                year: 'numeric',
+              })}
+            </Text>
           </View>
           
-          <Text style={styles.timeText}>18:30 - 19:30, 28 tháng 05.2025</Text>
+          <Text style={styles.timeText}>
+            {new Date(event.startTime).toLocaleString('vi-VN', {
+              hour: '2-digit',
+              minute: '2-digit',
+            })} -{' '}
+            {new Date(event.endTime).toLocaleString('vi-VN', {
+              hour: '2-digit',
+              minute: '2-digit',
+            })},{' '}
+            {new Date(event.startTime).toLocaleString('vi-VN', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+            })}
+          </Text>
+          
+          {/* Ticket Info */}
+          <View style={styles.ticketInfo}>
+            <Text style={styles.sectionTitle}>Thông tin vé</Text>
+            {tickets.map((ticket, index) => (
+              <Text key={index} style={styles.ticketText}>
+                {Object.keys(event.ticketPrices)[ticket.ticketId - 1]}: {ticket.quantity} vé
+              </Text>
+            ))}
+            <TextInput
+              style={styles.input}
+              placeholder="Nhập mã giảm giá"
+              value={discountCode}
+              onChangeText={setDiscountCode}
+            />
+          </View>
           
           {/* Countdown Timer */}
           <View style={styles.timerContainer}>
@@ -94,12 +226,20 @@ export default function PaymentScreen({ navigation }) {
           <View>
             <Text style={styles.priceLabel}>Tổng tiền</Text>
             <View style={styles.priceRow}>
-              <Text style={styles.priceAmount}>650.000 đ</Text>
+              <Text style={styles.priceAmount}>
+                {totalAmount.toLocaleString('vi-VN')} đ
+              </Text>
               <Ionicons name="chevron-up" size={16} color="#FF7E42" />
             </View>
           </View>
-          <TouchableOpacity style={styles.payButton}>
-            <Text style={styles.payButtonText}>Thanh toán</Text>
+          <TouchableOpacity
+            style={[styles.payButton, loading && styles.disabledButton]}
+            onPress={handlePayment}
+            disabled={loading}
+          >
+            <Text style={styles.payButtonText}>
+              {loading ? 'Đang xử lý...' : 'Thanh toán'}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -118,8 +258,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 15,
     paddingVertical: 30,
-      justifyContent: 'center',
- 
+    justifyContent: 'center',
   },
   backButton: {
     position: 'absolute',
@@ -158,6 +297,27 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 14,
     marginBottom: 16,
+  },
+  ticketInfo: {
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  ticketText: {
+    color: 'white',
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    color: '#111827',
   },
   timerContainer: {
     backgroundColor: '#D9D9D9',
@@ -232,7 +392,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   priceAmount: {
-    fontSize: 20,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#FF7E42',
     marginRight: 4,
@@ -242,6 +402,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
+  },
+  disabledButton: {
+    backgroundColor: '#E5E7EB',
   },
   payButtonText: {
     color: 'white',
