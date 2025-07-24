@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -62,9 +61,9 @@ export default function PaymentScreen({ navigation, route }: Props) {
   }, [navigation]);
 
   // Tính tổng tiền
-  const totalAmount = tickets && event?.ticketPrices
+  const totalAmount = tickets && event?.ticketPrices && event?.ticketTypes
     ? tickets.reduce((sum, ticket) => {
-        const ticketType = Object.keys(event.ticketPrices)[ticket.ticketId - 1]; // Giả định ticketId bắt đầu từ 1
+        const ticketType = event.ticketTypes[ticket.ticketId.toString()];
         const price = Number(event.ticketPrices[ticketType] || 0);
         return sum + ticket.quantity * price;
       }, 0)
@@ -84,25 +83,64 @@ export default function PaymentScreen({ navigation, route }: Props) {
       if (!token) {
         throw new Error('Token not found');
       }
-      const body = { eventId, tickets, discountCode: discountCode || undefined };
+
+      // Cập nhật request body với returnUrl và cancelUrl
+      const body = { 
+        eventId, 
+        tickets, 
+        discountCode: discountCode || undefined,
+        returnUrl: "https://url.ngrok-free.app/success",
+        cancelUrl: "https://url.ngrok-free.app/cancel"
+      };
+      
       console.log('Request body:', body);
+      
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`, // Thêm dấu phẩy
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(body),
       });
+      
       console.log('Response status:', response.status);
+      
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`API error: ${errorText}`);
       }
+      
       const result = await response.json();
       console.log('Response data:', result);
-      Alert.alert('Thành công', 'Đơn hàng đã được tạo thành công!');
-      navigation.navigate('Vé của tôi');
+      
+      // Kiểm tra nếu có payment URL (cho các payment gateway như PayPal, Stripe, etc.)
+      if (result.paymentUrl) {
+        Alert.alert(
+          'Chuyển hướng thanh toán', 
+          'Bạn sẽ được chuyển đến trang thanh toán',
+          [
+            {
+              text: 'Hủy',
+              style: 'cancel',
+            },
+            {
+              text: 'Tiếp tục',
+              onPress: () => {
+                // Ở đây bạn có thể mở WebView hoặc deep link đến payment URL
+                console.log('Payment URL:', result.paymentUrl);
+                // Tạm thời navigate đến success page
+                Alert.alert('Thành công', 'Đơn hàng đã được tạo thành công!');
+                navigation.navigate('Vé của tôi');
+              }
+            }
+          ]
+        );
+      } else {
+        // Trường hợp thanh toán trực tiếp thành công
+        Alert.alert('Thành công', 'Đơn hàng đã được tạo thành công!');
+        navigation.navigate('Vé của tôi');
+      }
     } catch (error) {
       console.error('Payment error:', error);
       Alert.alert('Lỗi', `Không thể tạo đơn hàng: ${error.message}`);
@@ -178,12 +216,13 @@ export default function PaymentScreen({ navigation, route }: Props) {
             <Text style={styles.sectionTitle}>Thông tin vé</Text>
             {tickets.map((ticket, index) => (
               <Text key={index} style={styles.ticketText}>
-                {Object.keys(event.ticketPrices)[ticket.ticketId - 1]}: {ticket.quantity} vé
+                {event.ticketTypes[ticket.ticketId.toString()]}: {ticket.quantity} vé
               </Text>
             ))}
             <TextInput
               style={styles.input}
               placeholder="Nhập mã giảm giá"
+              placeholderTextColor="#9CA3AF"
               value={discountCode}
               onChangeText={setDiscountCode}
             />
@@ -217,6 +256,20 @@ export default function PaymentScreen({ navigation, route }: Props) {
               <Text style={styles.qrPlaceholder}>QR Code</Text>
             </View>
           </View>
+
+          {/* Payment Info */}
+          <View style={styles.paymentInfo}>
+            <Text style={styles.paymentInfoTitle}>Thông tin thanh toán</Text>
+            <Text style={styles.paymentInfoText}>
+              • Sau khi nhấn "Thanh toán", bạn sẽ được chuyển đến trang thanh toán an toàn
+            </Text>
+            <Text style={styles.paymentInfoText}>
+              • Hệ thống sẽ tự động xử lý và gửi vé qua email
+            </Text>
+            <Text style={styles.paymentInfoText}>
+              • Vé sẽ xuất hiện trong tab "Vé của tôi" sau khi thanh toán thành công
+            </Text>
+          </View>
         </View>
       </ScrollView>
 
@@ -237,9 +290,11 @@ export default function PaymentScreen({ navigation, route }: Props) {
             onPress={handlePayment}
             disabled={loading}
           >
-            <Text style={styles.payButtonText}>
-              {loading ? 'Đang xử lý...' : 'Thanh toán'}
-            </Text>
+            {loading ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Text style={styles.payButtonText}>Thanh toán</Text>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -359,11 +414,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
-    flex: 1,
+    marginBottom: 16,
   },
   qrCode: {
-    width: 350,
-    height: 320,
+    width: 300,
+    height: 200,
     backgroundColor: '#E5E7EB',
     borderRadius: 8,
     alignItems: 'center',
@@ -372,6 +427,25 @@ const styles = StyleSheet.create({
   qrPlaceholder: {
     color: '#9CA3AF',
     fontSize: 14,
+  },
+  paymentInfo: {
+    backgroundColor: '#F9FAFB',
+    padding: 16,
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF7E42',
+  },
+  paymentInfoTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  paymentInfoText: {
+    fontSize: 14,
+    color: '#4B5563',
+    marginBottom: 4,
+    lineHeight: 20,
   },
   bottomSection: {
     borderTopWidth: 1,
@@ -402,6 +476,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
+    minWidth: 120,
+    alignItems: 'center',
   },
   disabledButton: {
     backgroundColor: '#E5E7EB',

@@ -1,5 +1,4 @@
 
-// screens/DetailEventScreen.tsx
 import React from 'react';
 import {
   View,
@@ -17,11 +16,12 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 const { width } = Dimensions.get('window');
 
-// Định nghĩa type cho navigation params
+// Định nghĩa type cho navigation params, đồng bộ với PaymentScreen
 type RootStackParamList = {
   'Chi tiết sự kiện': { event: any };
   'Chọn vé': { event: any };
-  'Thanh toán': { eventId: number; tickets: { ticketId: number; quantity: number }[] };
+  'Thanh toán': { eventId: number; tickets: { ticketId: number; quantity: number }[]; event: any };
+  'Vé của tôi': undefined;
 };
 
 // Định nghĩa type cho navigation và route
@@ -34,7 +34,7 @@ interface Props {
 }
 
 const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { event } = route.params || {}; // Lấy dữ liệu sự kiện từ navigation, thêm kiểm tra route.params
+  const { event } = route.params || {}; // Lấy dữ liệu sự kiện từ navigation
 
   // Kiểm tra nếu không có event
   if (!event) {
@@ -47,28 +47,35 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
     );
   }
 
-  // Lấy giá vé dựa trên ticketsSold
+  // Tính giá hiển thị
   const getPriceDisplay = () => {
-    if (!event.ticketPrices || Object.keys(event.ticketPrices).length === 0) {
+    if (!event.ticketPrices || !Object.keys(event.ticketPrices).length) {
       return { displayPrice: 'Miễn phí', originalPrice: null };
     }
 
     const ticketKeys = Object.keys(event.ticketPrices);
-    const soldKeys = ticketKeys.filter((key) => event.ticketsSold?.[key] > 0);
-    const minOriginalPrice = Math.min(...ticketKeys.map((key) => Number(event.ticketPrices[key])));
+    if (!ticketKeys.length) {
+      return { displayPrice: 'Miễn phí', originalPrice: null };
+    }
+
+    const minOriginalPrice = Math.min(...ticketKeys.map((key) => Number(event.ticketPrices[key] || 0)));
+    const soldKeys = event.ticketsSold
+      ? ticketKeys.filter((key) => (event.ticketsSold[key] || 0) > 0)
+      : [];
 
     if (soldKeys.length > 0) {
-      // Có vé đã bán, lấy giá nhỏ nhất từ các loại vé đã bán
-      const soldPrices = soldKeys.map((key) => Number(event.ticketPrices[key]));
+      const soldPrices = soldKeys.map((key) => Number(event.ticketPrices[key] || 0));
       const minSoldPrice = Math.min(...soldPrices);
       return {
-        displayPrice: `${minSoldPrice} VNĐ`,
-        originalPrice: minSoldPrice < minOriginalPrice ? `${minOriginalPrice} VNĐ` : null,
+        displayPrice: `${minSoldPrice.toLocaleString('vi-VN')} VNĐ`,
+        originalPrice: minSoldPrice < minOriginalPrice ? `${minOriginalPrice.toLocaleString('vi-VN')} VNĐ` : null,
       };
-    } else {
-      // Không có vé đã bán, hiển thị giá gốc
-      return { displayPrice: `${minOriginalPrice} VNĐ`, originalPrice: null };
     }
+
+    return {
+      displayPrice: `${minOriginalPrice.toLocaleString('vi-VN')} VNĐ`,
+      originalPrice: null,
+    };
   };
 
   const { displayPrice, originalPrice } = getPriceDisplay();
@@ -133,7 +140,6 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
           <Text style={styles.sectionTitle}>Giới thiệu</Text>
           <Text style={styles.eventName}>{event.eventName}</Text>
           <Text style={styles.description}>{event.description}</Text>
-
         </View>
 
         <View style={styles.bottomPadding} />
@@ -162,106 +168,94 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'white',
   },
   header: {
-    backgroundColor: '#FB923C',
-    paddingTop: 50,
-    paddingBottom: 30,
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#FB923C',
+    paddingVertical: 40,
+    paddingHorizontal: 16,
     justifyContent: 'center',
-    position: 'relative',
   },
   backButton: {
     position: 'absolute',
     left: 16,
-    top: 50,
   },
   backCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#ffffff',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 8,
   },
   headerTitle: {
-    color: 'white',
     fontSize: 18,
     fontWeight: '600',
+    color: 'white',
   },
   content: {
     flex: 1,
   },
   cardContainer: {
-    padding: 16,
+    paddingHorizontal: 16,
+    marginTop: -20,
   },
   eventCard: {
-    borderRadius: 16,
+    backgroundColor: 'white',
+    borderRadius: 12,
     overflow: 'hidden',
-    position: 'relative',
-    backgroundColor: '#D1D5DB',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   imageBackground: {
-    height: 300,
-    backgroundColor: '#4B5563',
-    justifyContent: 'flex-end',
+    width: '100%',
+    height: 200,
   },
   overlay: {
-    position: 'absolute',
-    bottom: 0,
-    width: '100%',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
     padding: 16,
+    justifyContent: 'flex-end',
   },
   eventTitle: {
-    color: 'white',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
+    color: 'white',
     marginBottom: 8,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   infoText: {
-    color: 'white',
     fontSize: 14,
+    color: 'white',
     marginLeft: 8,
+    flex: 1,
   },
   locationText: {
-    fontSize: 12,
-    color: '#d1d5db',
-    marginTop: 4,
+    fontSize: 14,
+    color: 'white',
   },
   detailsContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 24,
+    padding: 16,
   },
   sectionTitle: {
-    color: '#111827',
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: 'bold',
     marginBottom: 8,
-    marginTop: 16,
   },
   eventName: {
-    color: '#111827',
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
     marginBottom: 8,
   },
   description: {
-    color: '#6B7280',
     fontSize: 14,
-    lineHeight: 20,
-  },
-  rejectReason: {
-    color: '#FF0000',
-    fontSize: 14,
-    marginTop: 8,
+    color: '#4B5563',
   },
   bottomPadding: {
     height: 80,
@@ -271,44 +265,43 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
     backgroundColor: 'white',
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
   },
   priceContainer: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
   },
   priceLabel: {
+    fontSize: 16,
     color: '#6B7280',
-    fontSize: 14,
-  },
-  price: {
-    color: '#111827',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
   originalPrice: {
+    fontSize: 16,
     color: '#6B7280',
-    fontSize: 14,
     textDecorationLine: 'line-through',
     marginRight: 8,
   },
+  price: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FB923C',
+  },
   buyButton: {
     backgroundColor: '#FB923C',
-    paddingHorizontal: 24,
     paddingVertical: 12,
+    paddingHorizontal: 24,
     borderRadius: 8,
   },
   buyButtonText: {
-    color: 'white',
     fontSize: 16,
     fontWeight: '600',
+    color: 'white',
   },
 });
 

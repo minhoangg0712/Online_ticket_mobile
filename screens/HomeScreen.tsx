@@ -14,24 +14,22 @@ import {
 import Swiper from 'react-native-swiper';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useNavigation } from '@react-navigation/native';
-import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import eventService from '../services/eventService';
 
 console.log('eventService', eventService);
 const { width } = Dimensions.get('window');
 
-// Cập nhật TypeScript types để khớp với TabNavigator
-type RootTabParamList = {
-  'Trang chủ': undefined;
-  'Vé của tôi': undefined;
-  'Tài khoản': undefined;
-  'Thanh toán': undefined;
-  'Chọn vé': undefined;
+// Cập nhật TypeScript types để khớp với Stack Navigator
+type HomeStackParamList = {
+  HomeMain: undefined;
   'Chi tiết sự kiện': { event: any };
-  'Search': undefined; // Thêm Search vào RootTabParamList
+  'Chọn vé': { event: any };
+  'Thanh toán': { eventId: number; tickets: { ticketId: number; quantity: number }[]; event: any };
+  Search: undefined;
 };
 
-type NavigationProp = BottomTabNavigationProp<RootTabParamList>;
+type NavigationProp = NativeStackNavigationProp<HomeStackParamList>;
 
 const Home = () => {
   const navigation = useNavigation<NavigationProp>();
@@ -79,11 +77,15 @@ const Home = () => {
     return startTime >= startOfMonth && startTime <= endOfMonth;
   });
 
-  // Thêm hàm handleEventPress để lấy chi tiết sự kiện và điều hướng
+  // Cập nhật hàm handleEventPress để sử dụng Stack Navigation
   const handleEventPress = async (eventId: string) => {
     try {
+      console.log('Navigating to event details for eventId:', eventId);
       const eventDetails = await eventService.getEventDetails(eventId);
-      navigation.navigate('Chi tiết sự kiện', { event: eventDetails });
+      console.log('Event details response:', eventDetails);
+      
+      // Navigate trong Stack Navigator, không phải Tab Navigator
+      navigation.navigate('Chi tiết sự kiện', { event: eventDetails.data || eventDetails });
     } catch (error) {
       console.error('Error navigating to event details:', error);
     }
@@ -95,7 +97,7 @@ const Home = () => {
       <View style={styles.bannerGradient}>
         <TouchableOpacity
           style={styles.detailButton}
-          onPress={() => handleEventPress(item.eventId)} // Sửa từ 'EventDetail' thành handleEventPress
+          onPress={() => handleEventPress(item.eventId)}
         >
           <Text style={styles.detailButtonText}>Xem chi tiết</Text>
         </TouchableOpacity>
@@ -107,7 +109,7 @@ const Home = () => {
     <TouchableOpacity
       style={styles.eventOnlyCard}
       key={item.eventId}
-      onPress={() => handleEventPress(item.eventId)} // Thêm onPress
+      onPress={() => handleEventPress(item.eventId)}
     >
       <Image source={{ uri: item.backgroundUrl }} style={styles.cardOnlyImage} />
     </TouchableOpacity>
@@ -117,7 +119,7 @@ const Home = () => {
     <TouchableOpacity
       style={styles.horizontalImageCard}
       key={item.eventId}
-      onPress={() => handleEventPress(item.eventId)} // Thêm onPress
+      onPress={() => handleEventPress(item.eventId)}
     >
       <Image source={{ uri: item.backgroundUrl }} style={styles.horizontalImage} />
     </TouchableOpacity>
@@ -127,7 +129,7 @@ const Home = () => {
     <TouchableOpacity
       style={styles.eventCard}
       key={item.eventId}
-      onPress={() => handleEventPress(item.eventId)} // Thêm onPress
+      onPress={() => handleEventPress(item.eventId)}
     >
       <View style={styles.cardImageContainer}>
         <Image source={{ uri: item.backgroundUrl }} style={styles.cardImage} />
@@ -264,7 +266,7 @@ const Home = () => {
               horizontal
               keyExtractor={(item, index) => item.eventId?.toString() || index.toString()}
               showsHorizontalScrollIndicator={false}
-              renderItem={renderEventCard} // Sử dụng renderEventCard đã có onPress
+              renderItem={renderEventCard}
               contentContainerStyle={styles.eventsContainer}
             />
           </View>
@@ -351,6 +353,7 @@ const Home = () => {
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
