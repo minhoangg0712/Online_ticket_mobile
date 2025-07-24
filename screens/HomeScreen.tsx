@@ -277,7 +277,7 @@ const Home = () => {
               <Text style={styles.sectionTitle}>Âm nhạc</Text>
             </View>
             <FlatList
-              data={recommendedEvents.filter(event => event.category === 'Âm nhạc')}
+              data={recommendedEvents.filter(event => event.category === 'Music')}
               horizontal
               keyExtractor={(item, index) => item.eventId ? `music-${item.eventId}` : `music-${index}`}
               showsHorizontalScrollIndicator={false}
@@ -290,7 +290,7 @@ const Home = () => {
               <Text style={styles.sectionTitle}>Sân khấu và nghệ thuật</Text>
             </View>
             <FlatList
-              data={recommendedEvents.filter(event => event.category === 'Sân khấu và nghệ thuật')}
+              data={recommendedEvents.filter(event => event.category === 'Theatre-Arts')}
               horizontal
               keyExtractor={(item, index) => item.eventId ? `Theatre-Arts-${item.eventId}` : `Theatre-Arts-${index}`}
               showsHorizontalScrollIndicator={false}
@@ -316,7 +316,7 @@ const Home = () => {
               <Text style={styles.sectionTitle}>Thể thao</Text>
             </View>
             <FlatList
-              data={recommendedEvents.filter(event => event.category === 'Thể thao')}
+              data={recommendedEvents.filter(event => event.category === 'Sports')}
               horizontal
               keyExtractor={(item, index) => item.eventId ? `Thể thao-${item.eventId}` : `Thể thao-${index}`}
               showsHorizontalScrollIndicator={false}
@@ -332,10 +332,10 @@ const Home = () => {
               data={recommendedEvents.filter(
                 event =>
                   ![
-                    'Âm nhạc',
-                    'Sân khấu và nghệ thuật',
+                    'Music',
+                    'Theatre-Arts',
                     'Workshop',
-                    'Thể thao'
+                    'Sports'
                   ].includes(event.category)
               )}
               horizontal
