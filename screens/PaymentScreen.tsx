@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -14,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import WebView from 'react-native-webview';
 
 // Sử dụng IP máy hoặc 10.0.2.2 cho emulator
 const API_URL = 'http://10.0.2.2:8080/api/orders'; // Thay bằng IP máy nếu chạy trên thiết bị vật lý
@@ -40,6 +42,7 @@ export default function PaymentScreen({ navigation, route }: Props) {
   const [timeLeft, setTimeLeft] = useState({ minutes: 15, seconds: 0 });
   const [discountCode, setDiscountCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
 
   // Bộ đếm thời gian
   useEffect(() => {
@@ -76,6 +79,22 @@ export default function PaymentScreen({ navigation, route }: Props) {
       return;
     }
 
+    // Kiểm tra thời gian bán vé
+    const currentTime = new Date();
+    const eventStartTime = new Date(event.startTime);
+    if (currentTime > eventStartTime) {
+      Alert.alert('Lỗi', 'Thời gian bán vé đã kết thúc');
+      return;
+    }
+
+    // Kiểm tra số vé còn lại
+    const availableTickets = event.ticketsTotal["Nguyên"] - event.ticketsSold["Nguyên"];
+    const requestedTickets = tickets.reduce((sum, t) => sum + t.quantity, 0);
+    if (requestedTickets > availableTickets) {
+      Alert.alert('Lỗi', `Chỉ còn ${availableTickets} vé Nguyên khả dụng`);
+      return;
+    }
+
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
@@ -83,18 +102,14 @@ export default function PaymentScreen({ navigation, route }: Props) {
       if (!token) {
         throw new Error('Token not found');
       }
-
-      // Cập nhật request body với returnUrl và cancelUrl
-      const body = { 
-        eventId, 
-        tickets, 
-        discountCode: discountCode || undefined,
-        returnUrl: "https://url.ngrok-free.app/success",
-        cancelUrl: "https://url.ngrok-free.app/cancel"
+      const body = {
+        eventId,
+        tickets,
+        ...(discountCode && { discountCode }),
+        returnUrl: 'https://url.ngrok-free.app/success',
+        cancelUrl: 'https://url.ngrok-free.app/cancel',
       };
-      
-      console.log('Request body:', body);
-      
+      console.log('Request body:', JSON.stringify(body));
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
@@ -103,48 +118,36 @@ export default function PaymentScreen({ navigation, route }: Props) {
         },
         body: JSON.stringify(body),
       });
-      
       console.log('Response status:', response.status);
-      
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`API error: ${errorText}`);
       }
-      
       const result = await response.json();
-      console.log('Response data:', result);
-      
-      // Kiểm tra nếu có payment URL (cho các payment gateway như PayPal, Stripe, etc.)
-      if (result.paymentUrl) {
-        Alert.alert(
-          'Chuyển hướng thanh toán', 
-          'Bạn sẽ được chuyển đến trang thanh toán',
-          [
-            {
-              text: 'Hủy',
-              style: 'cancel',
-            },
-            {
-              text: 'Tiếp tục',
-              onPress: () => {
-                // Ở đây bạn có thể mở WebView hoặc deep link đến payment URL
-                console.log('Payment URL:', result.paymentUrl);
-                // Tạm thời navigate đến success page
-                Alert.alert('Thành công', 'Đơn hàng đã được tạo thành công!');
-                navigation.navigate('Vé của tôi');
-              }
-            }
-          ]
-        );
+      console.log('Response data:', JSON.stringify(result));
+      if (result.data?.checkoutUrl) {
+        setCheckoutUrl(result.data.checkoutUrl);
       } else {
-        // Trường hợp thanh toán trực tiếp thành công
-        Alert.alert('Thành công', 'Đơn hàng đã được tạo thành công!');
-        navigation.navigate('Vé của tôi');
+        throw new Error('No checkout URL provided');
       }
     } catch (error) {
       console.error('Payment error:', error);
       Alert.alert('Lỗi', `Không thể tạo đơn hàng: ${error.message}`);
-    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Xử lý chuyển hướng trong WebView
+  const handleWebViewNavigation = (navState: { url: string }) => {
+    const { url } = navState;
+    console.log('WebView URL:', url);
+    if (url.includes('https://url.ngrok-free.app/success')) {
+      setCheckoutUrl(null); // Ẩn WebView
+      Alert.alert('Thành công', 'Thanh toán hoàn tất!');
+      navigation.navigate('Vé của tôi');
+    } else if (url.includes('https://url.ngrok-free.app/cancel')) {
+      setCheckoutUrl(null); // Ẩn WebView
+      Alert.alert('Thông báo', 'Thanh toán đã bị hủy.');
       setLoading(false);
     }
   };
@@ -156,6 +159,35 @@ export default function PaymentScreen({ navigation, route }: Props) {
         <Text style={{ textAlign: 'center', marginTop: 20 }}>
           Không có dữ liệu sự kiện hoặc vé
         </Text>
+      </SafeAreaView>
+    );
+  }
+
+  // Hiển thị WebView nếu có checkoutUrl
+  if (checkoutUrl) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => {
+              setCheckoutUrl(null);
+              setLoading(false);
+            }}
+          >
+            <Ionicons name="arrow-back" size={24} color="white" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Thanh toán</Text>
+        </View>
+        <WebView
+          source={{ uri: checkoutUrl }}
+          style={styles.webView}
+          onNavigationStateChange={handleWebViewNavigation}
+          startInLoadingState
+          renderLoading={() => (
+            <ActivityIndicator size="large" color="#FF7E42" style={styles.loading} />
+          )}
+        />
       </SafeAreaView>
     );
   }
@@ -222,10 +254,12 @@ export default function PaymentScreen({ navigation, route }: Props) {
             <TextInput
               style={styles.input}
               placeholder="Nhập mã giảm giá"
-              placeholderTextColor="#9CA3AF"
               value={discountCode}
               onChangeText={setDiscountCode}
             />
+            <Text style={styles.ticketAvailability}>
+              Còn lại: {event.ticketsTotal["Nguyên"] - event.ticketsSold["Nguyên"]} vé Nguyên
+            </Text>
           </View>
           
           {/* Countdown Timer */}
@@ -256,20 +290,6 @@ export default function PaymentScreen({ navigation, route }: Props) {
               <Text style={styles.qrPlaceholder}>QR Code</Text>
             </View>
           </View>
-
-          {/* Payment Info */}
-          <View style={styles.paymentInfo}>
-            <Text style={styles.paymentInfoTitle}>Thông tin thanh toán</Text>
-            <Text style={styles.paymentInfoText}>
-              • Sau khi nhấn "Thanh toán", bạn sẽ được chuyển đến trang thanh toán an toàn
-            </Text>
-            <Text style={styles.paymentInfoText}>
-              • Hệ thống sẽ tự động xử lý và gửi vé qua email
-            </Text>
-            <Text style={styles.paymentInfoText}>
-              • Vé sẽ xuất hiện trong tab "Vé của tôi" sau khi thanh toán thành công
-            </Text>
-          </View>
         </View>
       </ScrollView>
 
@@ -290,11 +310,9 @@ export default function PaymentScreen({ navigation, route }: Props) {
             onPress={handlePayment}
             disabled={loading}
           >
-            {loading ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <Text style={styles.payButtonText}>Thanh toán</Text>
-            )}
+            <Text style={styles.payButtonText}>
+              {loading ? 'Đang xử lý...' : 'Thanh toán'}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -367,6 +385,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 8,
   },
+  ticketAvailability: {
+    color: 'white',
+    fontSize: 14,
+    marginTop: 8,
+  },
   input: {
     backgroundColor: 'white',
     borderRadius: 8,
@@ -414,11 +437,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
-    marginBottom: 16,
+    flex: 1,
   },
   qrCode: {
     width: 300,
-    height: 200,
+    height: 300,
     backgroundColor: '#E5E7EB',
     borderRadius: 8,
     alignItems: 'center',
@@ -427,25 +450,6 @@ const styles = StyleSheet.create({
   qrPlaceholder: {
     color: '#9CA3AF',
     fontSize: 14,
-  },
-  paymentInfo: {
-    backgroundColor: '#F9FAFB',
-    padding: 16,
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF7E42',
-  },
-  paymentInfoTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 8,
-  },
-  paymentInfoText: {
-    fontSize: 14,
-    color: '#4B5563',
-    marginBottom: 4,
-    lineHeight: 20,
   },
   bottomSection: {
     borderTopWidth: 1,
@@ -476,8 +480,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
-    minWidth: 120,
-    alignItems: 'center',
   },
   disabledButton: {
     backgroundColor: '#E5E7EB',
@@ -486,5 +488,14 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  webView: {
+    flex: 1,
+  },
+  loading: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -25 }, { translateY: -25 }],
   },
 });
