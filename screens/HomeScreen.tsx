@@ -143,9 +143,12 @@ const Home = () => {
           </Text>
         </View>
         <Text style={styles.cardPrice}>
-          <Text style={{ fontSize: 15, color: '#FF7E42' }}>Từ </Text>
-          {parseFloat(item.minPrice) > 0 ? `${item.minPrice} VNĐ` : 'Miễn phí'}
-        </Text>
+        <Text style={{ fontSize: 15, color: '#FF7E42' }}>Từ </Text>
+        {parseFloat(item.minPrice) > 0 
+          ? `${Number(item.minPrice).toLocaleString('vi-VN')} VNĐ` 
+          : 'Miễn phí'}
+      </Text>
+
       </View>
     </TouchableOpacity>
   );
