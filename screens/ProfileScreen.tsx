@@ -8,6 +8,8 @@ import {
   ScrollView,
   SafeAreaView,
   Alert,
+  Dimensions,
+  StatusBar,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useNavigation } from '@react-navigation/native';
@@ -15,41 +17,52 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 import authService from '../services/authService';
 import UserService from '../services/userService';
 
+const { width } = Dimensions.get('window');
+
 type RootStackParamList = {
   Profile: undefined;
   Account: undefined;
   Login: undefined;
+  Register: undefined;
 };
 
 const ProfileScreen = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const [fullName, setFullName] = useState('');
   const [imageUri, setImageUri] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-      const fetchUserData = async () => {
-        try {
+    const checkToken = async () => {
+      try {
+        const token = await authService.getToken();
+        if (token) {
+          setIsLoggedIn(true);
           const res = await UserService.getCurrentUserProfile();
           const data = res.data.data;
           setFullName(data.fullName || '');
           if (data.avatarUrl) setImageUri(data.avatarUrl);
-        } catch (error) {
-          console.error('Lỗi khi lấy dữ liệu người dùng:', error);
+        } else {
+          setIsLoggedIn(false);
         }
-      };
-      
-      fetchUserData();
-    }, []);
+      } catch (error) {
+        console.error('Lỗi khi kiểm tra token:', error);
+        setIsLoggedIn(false);
+      }
+    };
+
+    checkToken();
+  }, []);
 
   const imageSource = imageUri
     ? { uri: imageUri }
     : require('../assets/avatar.jpg');
-    
+
   const handleLogout = async () => {
-    await authService.logout(); 
+    await authService.logout();
     navigation.reset({
       index: 0,
-      routes: [{ name: 'Login' }], 
+      routes: [{ name: 'Login' }],
     });
   };
 
@@ -69,22 +82,52 @@ const ProfileScreen = () => {
     }
   };
 
+  if (!isLoggedIn) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="#FF7E42" />
+        <View style={styles.authContainer}>
+          <View style={styles.authHeader}>
+            <Image
+              source={require('../assets/logoeventa.png')} style={styles.authImage}/>
+            <Text style={styles.authTitle}>Chào mừng bạn đến với Eventa</Text>
+          </View>
+          
+          <View style={styles.authButtonsContainer}>
+            <TouchableOpacity
+              style={[styles.authButton, styles.primaryButton]}
+              onPress={() => navigation.navigate('Login')}
+            >
+              <Text style={styles.primaryButtonText}>Đăng nhập</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.authButton, styles.secondaryButton]}
+              onPress={() => navigation.navigate('Register')}
+            >
+              <Text style={styles.secondaryButtonText}>Đăng ký</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <Text style={styles.version}>Phiên bản 3.1.1(30225)</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         {/* Header & Avatar */}
         <View style={styles.header}>
           <View style={styles.avatarWrapper}>
-            <Image
-              source={imageSource}
-              style={styles.avatar}
-            />
+            <Image source={imageSource} style={styles.avatar} />
           </View>
         </View>
 
         {/* Name */}
         <View style={styles.nameContainer}>
-          <Text style={styles.name}>{fullName}</Text>
+          <Text style={styles.name}>{fullName || 'Người dùng'}</Text>
         </View>
 
         {/* Section Header: Cài đặt tài khoản */}
@@ -95,7 +138,7 @@ const ProfileScreen = () => {
 
         {/* Setting Items */}
         <View style={styles.settingGroup}>
-          <TouchableOpacity style={styles.settingItem}  onPress={() => navigation.navigate('Account')}>
+          <TouchableOpacity style={styles.settingItem} onPress={() => navigation.navigate('Account')}>
             <Text style={styles.settingText}>Thông tin tài khoản</Text>
             <Text style={styles.chevron}>▶</Text>
           </TouchableOpacity>
@@ -127,29 +170,91 @@ const ProfileScreen = () => {
         </View>
 
         <TouchableOpacity style={styles.logoutItem} onPress={handleLogout}>
-            <Icon name="sign-out" size={20} color="white" style={styles.logoutIcon} />
-            <Text style={styles.logoutText}>Đăng xuất</Text>
+          <Icon name="sign-out" size={20} color="white" style={styles.logoutIcon} />
+          <Text style={styles.logoutText}>Đăng xuất</Text>
         </TouchableOpacity>
 
         {/* Version */}
-        <Text style={styles.version}>Phiên bản 3.1.1(30225)</Text>
+        <Text style={styles.versionlast}>Phiên bản 3.1.1(30225)</Text>
       </ScrollView>
     </SafeAreaView>
   );
 };
 
 export default ProfileScreen;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFF6F2',
   },
-  
   scrollContainer: {
     paddingBottom: 100,
   },
+  
+  // Auth Styles
+  authContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    backgroundColor: '#FFF6F2',
+  },
+  authHeader: {
+    alignItems: 'center',
+    marginBottom: 50,
+  },
+  authTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000',
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  authButtonsContainer: {
+    width: '100%',
+    height: 60,
+    gap: 16,
+  },
+  authButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  primaryButton: {
+    backgroundColor: '#FF7E42',
+    paddingTop: 19,
+  },
+  secondaryButton: {
+    backgroundColor: 'white',
+    borderWidth: 0.5,
+    borderColor: '#FF7E42',
+    paddingTop: 19,
+  },
+  primaryButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    paddingBottom: 2,
+  },
+  secondaryButtonText: {
+    color: '#FF7E42',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 
-  // Header & Avatar
+  // Header Styles
   header: {
     height: 140,
     backgroundColor: '#ff7e42',
@@ -157,11 +262,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
   },
+
   avatarWrapper: {
     position: 'absolute',
     bottom: -45,
     zIndex: 10,
   },
+
   avatar: {
     width: 90,
     height: 90,
@@ -170,19 +277,20 @@ const styles = StyleSheet.create({
     borderColor: '#000',
   },
 
-  // Name
+  // Name Section
   nameContainer: {
     alignItems: 'center',
     marginTop: 55,
-    marginBottom: 16,
-  },
-  name: {
-    color: '#000',
-    fontSize: 18,
-    fontWeight: '600',
+    marginBottom: 20,
   },
 
-  // Section Header
+  name: {
+    color: '#000',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+
+  // Section Styles
   sectionHeader: {
     paddingHorizontal: 20,
     paddingTop: 30,
@@ -194,18 +302,23 @@ const styles = StyleSheet.create({
 
   sectionText: {
     color: '#000',
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '700',
   },
 
+  // Settings Group
   settingGroup: {
-    backgroundColor: '#fff7f3',        
-    borderRadius: 12,              
-    borderWidth: 1,                   
-    borderColor: '#000',               
-    marginHorizontal: 16,
-    marginTop: 20,
-    overflow: 'hidden',
+    backgroundColor: 'white',
+    borderRadius: 16,
+    marginHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
 
   settingItem: {
@@ -214,14 +327,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     paddingHorizontal: 20,
-    borderWidth: 0.5,
-    borderBottomColor: '#000',
-    backgroundColor: '#fff7f3',
   },
 
   settingText: {
     color: '#000',
     fontSize: 16,
+    fontWeight: '600',
   },
 
   chevron: {
@@ -229,36 +340,59 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 
+  // Logout Button
   logoutItem: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff7f3',
-    borderWidth: 1,
-    borderColor: '#000',
-    borderRadius: 999,
-    paddingVertical: 12,
-    marginHorizontal: 40,
-    marginTop: 100,
+    backgroundColor: '#FF7E42',
+    marginHorizontal: 20,
+    paddingVertical: 16,
+    borderRadius: 8,
+    shadowColor: '#FF7E42',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+    marginTop: 30,
   },
 
+  // Logout Icon
   logoutIcon: {
-    color: 'red',
     marginRight: 8,
   },
 
+  // Logout Text
   logoutText: {
-    color: 'red',
-    fontWeight: 'bold',
+    color: 'white',
+    fontWeight: '700',
     fontSize: 16,
   },
 
+  // Version
   version: {
     textAlign: 'center',
-    color: '#000',
-    marginTop: 35,
+    color: '#999',
     fontSize: 12,
+    fontWeight: '500',
+    marginTop: 130,
+  },
+
+  versionlast: {
+    textAlign: 'center',
+    color: '#999',
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 30,
+    marginBottom: 20,
+  },
+
+  authImage: {
+    width: 180,
+    height: 45,
+    marginBottom: 16,
   },
 });
-
-
