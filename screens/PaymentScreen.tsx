@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -10,6 +9,10 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Image,
+  Dimensions,
+  ViewStyle,
+  ImageStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp } from '@react-navigation/native';
@@ -17,10 +20,12 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import WebView from 'react-native-webview';
 
-// Sử dụng IP máy hoặc 10.0.2.2 cho emulator
-const API_URL = 'http://10.0.2.2:8080/api/orders'; // Thay bằng IP máy nếu chạy trên thiết bị vật lý
+const { width } = Dimensions.get('window');
 
-// Định nghĩa type cho navigation params
+// Use machine IP or 10.0.2.2 for emulator
+const API_URL = 'http://10.0.2.2:8080/api/orders'; // Replace with machine IP for physical device
+
+// Define type for navigation params
 type RootStackParamList = {
   'Chi tiết sự kiện': { event: any };
   'Chọn vé': { event: any };
@@ -28,7 +33,7 @@ type RootStackParamList = {
   'Vé của tôi': undefined;
 };
 
-// Định nghĩa type cho navigation và route
+// Define types for navigation and route
 type PaymentScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Thanh toán'>;
 type PaymentScreenRouteProp = RouteProp<RootStackParamList, 'Thanh toán'>;
 
@@ -44,7 +49,7 @@ export default function PaymentScreen({ navigation, route }: Props) {
   const [loading, setLoading] = useState(false);
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
 
-  // Bộ đếm thời gian
+  // Countdown timer
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
@@ -63,7 +68,7 @@ export default function PaymentScreen({ navigation, route }: Props) {
     return () => clearInterval(timer);
   }, [navigation]);
 
-  // Tính tổng tiền
+  // Calculate total amount
   const totalAmount = tickets && event?.ticketPrices && event?.ticketTypes
     ? tickets.reduce((sum, ticket) => {
         const ticketType = event.ticketTypes[ticket.ticketId.toString()];
@@ -72,14 +77,14 @@ export default function PaymentScreen({ navigation, route }: Props) {
       }, 0)
     : 0;
 
-  // Xử lý thanh toán
+  // Handle payment
   const handlePayment = async () => {
     if (!eventId || !tickets || tickets.length === 0) {
       Alert.alert('Lỗi', 'Không có thông tin vé hoặc sự kiện');
       return;
     }
 
-    // Kiểm tra thời gian bán vé
+    // Check ticket sale time
     const currentTime = new Date();
     const eventStartTime = new Date(event.startTime);
     if (currentTime > eventStartTime) {
@@ -87,7 +92,7 @@ export default function PaymentScreen({ navigation, route }: Props) {
       return;
     }
 
-    // Kiểm tra số vé còn lại
+    // Check ticket availability
     const availableTickets = event.ticketsTotal["Nguyên"] - event.ticketsSold["Nguyên"];
     const requestedTickets = tickets.reduce((sum, t) => sum + t.quantity, 0);
     if (requestedTickets > availableTickets) {
@@ -137,22 +142,22 @@ export default function PaymentScreen({ navigation, route }: Props) {
     }
   };
 
-  // Xử lý chuyển hướng trong WebView
+  // Handle WebView navigation
   const handleWebViewNavigation = (navState: { url: string }) => {
     const { url } = navState;
     console.log('WebView URL:', url);
     if (url.includes('https://url.ngrok-free.app/success')) {
-      setCheckoutUrl(null); // Ẩn WebView
+      setCheckoutUrl(null); // Hide WebView
       Alert.alert('Thành công', 'Thanh toán hoàn tất!');
       navigation.navigate('Vé của tôi');
     } else if (url.includes('https://url.ngrok-free.app/cancel')) {
-      setCheckoutUrl(null); // Ẩn WebView
+      setCheckoutUrl(null); // Hide WebView
       Alert.alert('Thông báo', 'Thanh toán đã bị hủy.');
       setLoading(false);
     }
   };
 
-  // Kiểm tra nếu không có dữ liệu
+  // Check for missing data
   if (!event || !eventId || !tickets) {
     return (
       <SafeAreaView style={styles.container}>
@@ -163,7 +168,7 @@ export default function PaymentScreen({ navigation, route }: Props) {
     );
   }
 
-  // Hiển thị WebView nếu có checkoutUrl
+  // Render WebView if checkoutUrl exists
   if (checkoutUrl) {
     return (
       <SafeAreaView style={styles.container}>
@@ -205,18 +210,24 @@ export default function PaymentScreen({ navigation, route }: Props) {
         <Text style={styles.headerTitle}>Thanh toán</Text>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Event Info */}
         <View style={styles.eventInfo}>
+          {/* Event Image */}
+          <View style={styles.imageContainer}>
+            <Image
+              source={{ uri: event.backgroundUrl || 'https://via.placeholder.com/300' }}
+              style={styles.eventImage}
+              resizeMode="cover"
+            />
+          </View>
           <Text style={styles.eventTitle}>{event.eventName}</Text>
-          
           <View style={styles.infoRow}>
-            <Ionicons name="location-outline" size={16} color="white" />
+            <Ionicons name="location-outline" size={16} color="#4B5563" />
             <Text style={styles.infoText}>{event.address}</Text>
           </View>
-          
           <View style={styles.infoRow}>
-            <Ionicons name="calendar-outline" size={16} color="white" />
+            <Ionicons name="calendar-outline" size={16} color="#4B5563" />
             <Text style={styles.infoText}>
               {new Date(event.startTime).toLocaleString('vi-VN', {
                 weekday: 'long',
@@ -226,7 +237,6 @@ export default function PaymentScreen({ navigation, route }: Props) {
               })}
             </Text>
           </View>
-          
           <Text style={styles.timeText}>
             {new Date(event.startTime).toLocaleString('vi-VN', {
               hour: '2-digit',
@@ -242,7 +252,6 @@ export default function PaymentScreen({ navigation, route }: Props) {
               year: 'numeric',
             })}
           </Text>
-          
           {/* Ticket Info */}
           <View style={styles.ticketInfo}>
             <Text style={styles.sectionTitle}>Thông tin vé</Text>
@@ -257,11 +266,8 @@ export default function PaymentScreen({ navigation, route }: Props) {
               value={discountCode}
               onChangeText={setDiscountCode}
             />
-            <Text style={styles.ticketAvailability}>
-              Còn lại: {event.ticketsTotal["Nguyên"] - event.ticketsSold["Nguyên"]} vé Nguyên
-            </Text>
+           
           </View>
-          
           {/* Countdown Timer */}
           <View style={styles.timerContainer}>
             <Text style={styles.timerLabel}>Hoàn tất đặt vé trong</Text>
@@ -279,18 +285,7 @@ export default function PaymentScreen({ navigation, route }: Props) {
             </View>
           </View>
         </View>
-
-        {/* QR Code Section */}
-        <View style={styles.qrSection}>
-          <Text style={styles.qrTitle}>MÃ QR</Text>
-          
-          {/* QR Code Placeholder */}
-          <View style={styles.qrContainer}>
-            <View style={styles.qrCode}>
-              <Text style={styles.qrPlaceholder}>QR Code</Text>
-            </View>
-          </View>
-        </View>
+        <View style={styles.bottomPadding} />
       </ScrollView>
 
       {/* Bottom Section */}
@@ -324,7 +319,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'white',
-  },
+  } as ViewStyle,
   header: {
     backgroundColor: '#FF7E42',
     flexDirection: 'row',
@@ -332,11 +327,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 30,
     justifyContent: 'center',
-  },
+  } as ViewStyle,
   backButton: {
     position: 'absolute',
     left: 16,
-  },
+  } as ViewStyle,
   headerTitle: {
     color: 'white',
     fontSize: 18,
@@ -344,13 +339,29 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-  },
+  } as ViewStyle,
   eventInfo: {
-    backgroundColor: '#9F9A9A',
+    backgroundColor: 'white',
     padding: 16,
-  },
+    flex: 1,
+  } as ViewStyle,
+  imageContainer: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    marginBottom: 16,
+    marginTop: -16, // Pull image up to align with header
+  } as ViewStyle,
+  eventImage: {
+    width: '100%',
+    height: 200,
+  } as ImageStyle,
   eventTitle: {
-    color: 'white',
+    color: '#1F2937',
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 12,
@@ -359,108 +370,90 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
-  },
+  } as ViewStyle,
   infoText: {
-    color: 'white',
+    color: '#4B5563',
     fontSize: 14,
     marginLeft: 8,
     flex: 1,
   },
   timeText: {
-    color: 'white',
+    color: '#4B5563',
     fontSize: 14,
     marginBottom: 16,
   },
   ticketInfo: {
     marginBottom: 16,
-  },
+  } as ViewStyle,
   sectionTitle: {
-    color: 'white',
+    color: '#1F2937',
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 8,
   },
   ticketText: {
-    color: 'white',
+    color: '#4B5563',
     fontSize: 14,
     marginBottom: 8,
   },
   ticketAvailability: {
-    color: 'white',
+    color: '#4B5563',
     fontSize: 14,
     marginTop: 8,
   },
   input: {
-    backgroundColor: 'white',
+    backgroundColor: '#F3F4F6',
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
-    color: '#111827',
+    color: '#1F2937',
   },
   timerContainer: {
-    backgroundColor: '#D9D9D9',
+    backgroundColor: '#F3F4F6',
     borderRadius: 8,
     padding: 12,
     alignItems: 'center',
-  },
+  } as ViewStyle,
   timerLabel: {
-    color: 'white',
+    color: '#4B5563',
     fontSize: 14,
     marginBottom: 8,
   },
   timerNumbers: {
     flexDirection: 'row',
     gap: 8,
-  },
+  } as ViewStyle,
   timerBox: {
     backgroundColor: '#FF7E42',
     borderRadius: 6,
     paddingHorizontal: 12,
     paddingVertical: 4,
-  },
+  } as ViewStyle,
   timerText: {
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
   },
-  qrSection: {
-    padding: 16,
-    flex: 1,
-  },
-  qrTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  qrContainer: {
-    backgroundColor: '#D1D5DB',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    flex: 1,
-  },
-  qrCode: {
-    width: 300,
-    height: 300,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  qrPlaceholder: {
-    color: '#9CA3AF',
-    fontSize: 14,
-  },
   bottomSection: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
     padding: 16,
-  },
+    backgroundColor: 'white',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  } as ViewStyle,
   priceContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-  },
+  } as ViewStyle,
   priceLabel: {
     color: '#6B7280',
     fontSize: 14,
@@ -468,7 +461,7 @@ const styles = StyleSheet.create({
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
+  } as ViewStyle,
   priceAmount: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -480,10 +473,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
-  },
+  } as ViewStyle,
   disabledButton: {
     backgroundColor: '#E5E7EB',
-  },
+  } as ViewStyle,
   payButtonText: {
     color: 'white',
     fontSize: 16,
@@ -491,11 +484,14 @@ const styles = StyleSheet.create({
   },
   webView: {
     flex: 1,
-  },
+  } as ViewStyle,
   loading: {
     position: 'absolute',
     top: '50%',
     left: '50%',
     transform: [{ translateX: -25 }, { translateY: -25 }],
-  },
+  } as ViewStyle,
+  bottomPadding: {
+    height: 80, // Accounts for fixed bottom section
+  } as ViewStyle,
 });

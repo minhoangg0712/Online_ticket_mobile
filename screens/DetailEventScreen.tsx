@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   View,
@@ -8,7 +7,7 @@ import {
   StatusBar,
   StyleSheet,
   Dimensions,
-  ImageBackground,
+  Image,
 } from 'react-native';
 import { ArrowLeft, Clock, MapPin } from 'lucide-react-native';
 import { RouteProp } from '@react-navigation/native';
@@ -16,7 +15,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 const { width } = Dimensions.get('window');
 
-// Định nghĩa type cho navigation params, đồng bộ với PaymentScreen
+// Define type for navigation params, synced with PaymentScreen
 type RootStackParamList = {
   'Chi tiết sự kiện': { event: any };
   'Chọn vé': { event: any };
@@ -24,7 +23,7 @@ type RootStackParamList = {
   'Vé của tôi': undefined;
 };
 
-// Định nghĩa type cho navigation và route
+// Define types for navigation and route
 type DetailEventScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Chi tiết sự kiện'>;
 type DetailEventScreenRouteProp = RouteProp<RootStackParamList, 'Chi tiết sự kiện'>;
 
@@ -34,9 +33,9 @@ interface Props {
 }
 
 const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { event } = route.params || {}; // Lấy dữ liệu sự kiện từ navigation
+  const { event } = route.params || {}; // Get event data from navigation
 
-  // Kiểm tra nếu không có event
+  // Check if no event is provided
   if (!event) {
     return (
       <View style={styles.container}>
@@ -47,7 +46,7 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
     );
   }
 
-  // Tính giá hiển thị
+  // Calculate price display
   const getPriceDisplay = () => {
     if (!event.ticketPrices || !Object.keys(event.ticketPrices).length) {
       return { displayPrice: 'Miễn phí', originalPrice: null };
@@ -94,48 +93,45 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
         <Text style={styles.headerTitle}>Chi tiết sự kiện</Text>
       </View>
 
-      {/* Nội dung chính */}
+      {/* Main Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Thẻ sự kiện */}
+        {/* Event Image */}
         <View style={styles.cardContainer}>
           <View style={styles.eventCard}>
-            <ImageBackground
+            <Image
               source={{ uri: event.backgroundUrl || 'https://via.placeholder.com/300' }}
-              style={styles.imageBackground}
+              style={styles.eventImage}
               resizeMode="cover"
-            >
-              <View style={styles.overlay}>
-                <Text style={styles.eventTitle}>{event.eventName}</Text>
-
-                <View style={styles.infoRow}>
-                  <Clock size={16} color="white" />
-                  <Text style={styles.infoText}>
-                    {new Date(event.startTime).toLocaleString('vi-VN', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric',
-                    })} -{' '}
-                    {new Date(event.endTime).toLocaleString('vi-VN', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </Text>
-                </View>
-
-                <View style={styles.infoRow}>
-                  <MapPin size={16} color="white" />
-                  <Text style={styles.infoText}>{event.address}</Text>
-                </View>
-
-                <Text style={styles.locationText}>{event.address}</Text>
-              </View>
-            </ImageBackground>
+            />
           </View>
         </View>
 
-        {/* Giới thiệu */}
+        {/* Event Info */}
+        <View style={styles.infoContainer}>
+          <Text style={styles.eventTitle}>{event.eventName}</Text>
+          <View style={styles.infoRow}>
+            <Clock size={16} color="#4B5563" />
+            <Text style={styles.infoText}>
+              {new Date(event.startTime).toLocaleString('vi-VN', {
+                hour: '2-digit',
+                minute: '2-digit',
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+              })} -{' '}
+              {new Date(event.endTime).toLocaleString('vi-VN', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </Text>
+          </View>
+          <View style={styles.infoRow}>
+            <MapPin size={16} color="#4B5563" />
+            <Text style={styles.infoText}>{event.address}</Text>
+          </View>
+        </View>
+
+        {/* Introduction */}
         <View style={styles.detailsContainer}>
           <Text style={styles.sectionTitle}>Giới thiệu</Text>
           <Text style={styles.eventName}>{event.eventName}</Text>
@@ -145,7 +141,7 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
         <View style={styles.bottomPadding} />
       </ScrollView>
 
-      {/* Phần chân mua vé */}
+      {/* Fixed Price and Buy Button */}
       <View style={styles.bottomSection}>
         <View style={styles.priceContainer}>
           <Text style={styles.priceLabel}>Từ </Text>
@@ -209,21 +205,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  imageBackground: {
+  eventImage: {
     width: '100%',
     height: 200,
   },
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+  infoContainer: {
     padding: 16,
-    justifyContent: 'flex-end',
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
   eventTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 8,
+    color: '#1F2937',
+    marginBottom: 12,
   },
   infoRow: {
     flexDirection: 'row',
@@ -232,13 +228,9 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 14,
-    color: 'white',
+    color: '#4B5563',
     marginLeft: 8,
     flex: 1,
-  },
-  locationText: {
-    fontSize: 14,
-    color: 'white',
   },
   detailsContainer: {
     padding: 16,
@@ -257,9 +249,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#4B5563',
   },
-  bottomPadding: {
-    height: 80,
-  },
   bottomSection: {
     position: 'absolute',
     bottom: 0,
@@ -272,6 +261,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   priceContainer: {
     flexDirection: 'row',
@@ -302,6 +296,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: 'white',
+  },
+  bottomPadding: {
+    height: 80, // Increased to account for fixed bottom section
   },
 });
 
