@@ -92,11 +92,18 @@ export default function PaymentScreen({ navigation, route }: Props) {
       return;
     }
 
-    // Check ticket availability
-    const availableTickets = event.ticketsTotal["Nguyên"] - event.ticketsSold["Nguyên"];
+    // Log ticket data for debugging
+    console.log('Ticket Types:', event.ticketTypes);
+    console.log('Tickets Total:', event.ticketsTotal);
+    console.log('Tickets Sold:', event.ticketsSold);
+    console.log('Requested Tickets:', tickets);
+
+    // Check ticket availability for "Thường" or "Nguyên"
+    const ticketTypeKey = event.ticketTypes[tickets[0].ticketId.toString()];
+    const availableTickets = event.ticketsTotal[ticketTypeKey] - (event.ticketsSold[ticketTypeKey] || 0);
     const requestedTickets = tickets.reduce((sum, t) => sum + t.quantity, 0);
     if (requestedTickets > availableTickets) {
-      Alert.alert('Lỗi', `Chỉ còn ${availableTickets} vé Nguyên khả dụng`);
+      Alert.alert('Lỗi', `Chỉ còn ${availableTickets} vé ${ticketTypeKey} khả dụng`);
       return;
     }
 
@@ -105,7 +112,9 @@ export default function PaymentScreen({ navigation, route }: Props) {
       const token = await AsyncStorage.getItem('token');
       console.log('Token:', token);
       if (!token) {
-        throw new Error('Token not found');
+        Alert.alert('Thông báo', 'Vui lòng đăng nhập để mua vé!');
+        setLoading(false);
+        return;
       }
       const body = {
         eventId,
@@ -125,8 +134,9 @@ export default function PaymentScreen({ navigation, route }: Props) {
       });
       console.log('Response status:', response.status);
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API error: ${errorText}`);
+        const errorData = await response.json();
+        console.log('Error response:', errorData);
+        throw new Error(errorData.message || 'Không thể tạo đơn hàng');
       }
       const result = await response.json();
       console.log('Response data:', JSON.stringify(result));
@@ -135,9 +145,13 @@ export default function PaymentScreen({ navigation, route }: Props) {
       } else {
         throw new Error('No checkout URL provided');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Payment error:', error);
-      Alert.alert('Lỗi', `Không thể tạo đơn hàng: ${error.message}`);
+      if (error.message.includes('Ticket sale for Thường has not started')) {
+        Alert.alert('Lỗi', 'Thời gian bán vé cho loại vé Thường chưa bắt đầu. Vui lòng kiểm tra lại thời gian sự kiện.');
+      } else {
+        Alert.alert('Lỗi', `Không thể tạo đơn hàng: ${error.message}`);
+      }
       setLoading(false);
     }
   };
@@ -266,7 +280,6 @@ export default function PaymentScreen({ navigation, route }: Props) {
               value={discountCode}
               onChangeText={setDiscountCode}
             />
-           
           </View>
           {/* Countdown Timer */}
           <View style={styles.timerContainer}>
@@ -354,7 +367,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     marginBottom: 16,
-    marginTop: -16, // Pull image up to align with header
+    marginTop: -16,
   } as ViewStyle,
   eventImage: {
     width: '100%',
@@ -395,11 +408,6 @@ const styles = StyleSheet.create({
     color: '#4B5563',
     fontSize: 14,
     marginBottom: 8,
-  },
-  ticketAvailability: {
-    color: '#4B5563',
-    fontSize: 14,
-    marginTop: 8,
   },
   input: {
     backgroundColor: '#F3F4F6',
@@ -492,6 +500,6 @@ const styles = StyleSheet.create({
     transform: [{ translateX: -25 }, { translateY: -25 }],
   } as ViewStyle,
   bottomPadding: {
-    height: 80, // Accounts for fixed bottom section
+    height: 80,
   } as ViewStyle,
 });
