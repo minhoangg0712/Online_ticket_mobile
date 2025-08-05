@@ -15,8 +15,6 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import eventService from '../services/eventService';
-import { useAuth } from '../services/authContext';
-import { Alert } from 'react-native';
 
 console.log('eventService', eventService);
 const { width } = Dimensions.get('window');
@@ -33,7 +31,6 @@ type NavigationProp = NativeStackNavigationProp<HomeStackParamList>;
 
 const Home = () => {
   const navigation = useNavigation<NavigationProp>();
-  const { user, isAuthenticated } = useAuth ? useAuth() : { user: null, isAuthenticated: false };
   const [timeTab, setTimeTab] = React.useState<'thisWeek' | 'thisMonth'>('thisWeek');
   const [loading, setLoading] = React.useState(true);
   const [recommendedEvents, setRecommendedEvents] = React.useState<any[]>([]);
@@ -90,16 +87,6 @@ const Home = () => {
     }
   };
 
-  // Chặn mua vé khi chưa đăng nhập
-  const handleBuyTicket = (event: any) => {
-    if (!isAuthenticated) {
-      Alert.alert('Thông báo', 'Bạn cần đăng nhập để mua vé.');
-      navigation.getParent()?.navigate('Login');
-      return;
-    }
-    navigation.navigate('Chọn vé', { event });
-  };
-
   const renderBannerSlide = ({ item, index }) => (
     <View key={`slide-${item.eventId}-${index}`} style={styles.slide}>
       <Image source={{ uri: item.backgroundUrl }} style={styles.banner} />
@@ -153,17 +140,10 @@ const Home = () => {
         </View>
         <Text style={styles.cardPrice}>
           <Text style={{ fontSize: 15, color: '#FF7E42' }}>Từ </Text>
-          {parseFloat(item.minPrice) > 0 
-            ? `${Number(item.minPrice).toLocaleString('vi-VN')} VNĐ` 
-            : 'Miễn phí'}
-        </Text>
-        {/* Nút mua vé */}
-        <TouchableOpacity
-          style={[styles.detailButton, { marginTop: 10 }]}
-          onPress={() => handleBuyTicket(item)}
-        >
-          <Text style={styles.detailButtonText}>Mua vé</Text>
-        </TouchableOpacity>
+        {parseFloat(item.minPrice) > 0 
+          ? `${Number(item.minPrice).toLocaleString('vi-VN')} VNĐ` 
+          : 'Miễn phí'}
+      </Text>
       </View>
     </TouchableOpacity>
   );
