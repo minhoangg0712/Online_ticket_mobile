@@ -8,10 +8,12 @@ import {
   StyleSheet,
   Dimensions,
   Image,
+  Alert,
 } from 'react-native';
 import { ArrowLeft, Clock, MapPin } from 'lucide-react-native';
 import { RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
@@ -21,6 +23,7 @@ type RootStackParamList = {
   'Chọn vé': { event: any };
   'Thanh toán': { eventId: number; tickets: { ticketId: number; quantity: number }[]; event: any };
   'Vé của tôi': undefined;
+  'Login': undefined;
 };
 
 // Define types for navigation and route
@@ -78,6 +81,23 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const { displayPrice, originalPrice } = getPriceDisplay();
+
+  // Handle "Mua vé ngay" button press
+  const handleBuyTicket = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      console.log('Token:', token);
+      if (!token) {
+        Alert.alert('Thông báo', 'Vui lòng đăng nhập để mua vé!');
+        navigation.navigate('Login');
+        return;
+      }
+      navigation.navigate('Chọn vé', { event });
+    } catch (error) {
+      console.error('Error checking token:', error);
+      Alert.alert('Lỗi', 'Không thể kiểm tra trạng thái đăng nhập. Vui lòng thử lại.');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -152,7 +172,7 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
         </View>
         <TouchableOpacity
           style={styles.buyButton}
-          onPress={() => navigation.navigate('Chọn vé', { event })}
+          onPress={handleBuyTicket}
         >
           <Text style={styles.buyButtonText}>Mua vé ngay</Text>
         </TouchableOpacity>
@@ -298,7 +318,7 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   bottomPadding: {
-    height: 80, // Increased to account for fixed bottom section
+    height: 80,
   },
 });
 
