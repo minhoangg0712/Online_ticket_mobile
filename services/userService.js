@@ -64,9 +64,38 @@ export const deleteAccount = async () => {
   });
 };
 
+export const getTicketByUserIdAxios = async (userId) => {
+  try {
+    if (!userId) throw new Error('userId không hợp lệ');
+
+    const token = await AsyncStorage.getItem('token');
+
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    };
+
+    console.log('📡 Đang gọi API lấy vé cho userId:', userId);
+
+    const { data } = await axios.get(`${API_URL}/users/ticket/${userId}`, {
+      headers,
+    });
+
+    console.log('🎟️ Vé lấy được:', data);
+
+    return data?.data ?? []; // Trả về mảng rỗng nếu không có vé
+  } catch (error) {
+    console.error('❌ Lỗi khi gọi API lấy vé:', error?.response?.data || error.message);
+    throw error;
+  }
+};
+
+
+
 export default {
   getCurrentUserProfile,
   updateUserProfile,
   uploadAvatar,
-  deleteAccount
+  deleteAccount,
+  getTicketByUserIdAxios
 };

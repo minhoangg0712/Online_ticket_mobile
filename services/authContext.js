@@ -30,6 +30,7 @@ export const AuthProvider = ({ children }) => {
             token,
             email: decoded?.email || decoded?.sub,
             role,
+            userId: decoded?.sub,
           });
         }
       } catch (err) {
@@ -67,6 +68,7 @@ export const AuthProvider = ({ children }) => {
         token,
         email: decoded?.email || decoded?.sub,
         role,
+        userId: decoded?.sub || decoded?.userId,
       });
     } catch (err) {
       Alert.alert('Lỗi', err.message || 'Đăng nhập thất bại.');
