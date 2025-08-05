@@ -54,31 +54,29 @@ const LoginScreen: React.FC = () => {
   });
 
   const onLogin = async (data: any) => {
-    setIsLoading(true);
-    setMessage('');
-    try {
-      await login(data.email, data.password);
-      navigation.replace('Home');
-    } catch (error: any) {
-      let errMsg = 'Đăng nhập thất bại.';
+  setIsLoading(true);
+  setMessage('');
+  try {
+    await login(data.email, data.password);
+    navigation.replace('Home');
+  } catch (error: any) {
+    let errMsg = 'Đăng nhập thất bại.';
 
-      const raw = error?.message?.toLowerCase?.() || '';
-
-      if (Array.isArray(error)) {
-        errMsg = error.join('\n');
-      } else if (raw.includes('user not found') || raw.includes('email')) {
-        errMsg = 'Email không tồn tại trong hệ thống.';
-      } else if (raw.includes('wrong password') || raw.includes('invalid password')) {
-        errMsg = 'Mật khẩu không đúng.';
-      } else if (error?.message) {
-        errMsg = error.message;
-      }
-
-      setMessage(errMsg);
-    } finally {
-      setIsLoading(false);
+    if (typeof error === 'string') {
+      errMsg = error;
+    } else if (error instanceof Error) {
+      errMsg = error.message;
+    } else if (typeof error === 'object' && error !== null && 'message' in error) {
+      errMsg = (error as any).message;
     }
-  };
+
+    console.log('Lỗi khi login:', error);
+    setMessage(errMsg);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   // const handleGoogleLogin = async () => {
   // try {
