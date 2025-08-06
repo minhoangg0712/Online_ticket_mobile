@@ -81,9 +81,9 @@ const TicketScreen = ({}) => {
             status,
             cancellationReason,
             totalAmount,
-            eventName: ticket.event?.name,
-            eventAddress: ticket.event?.address,
-            eventImage: ticket.event?.image,
+            eventName: ticket.eventName,
+            eventAddress: ticket.eventLocation,
+            price: ticket.unitPrice
           }));
           allTickets.push(...enriched);
         }
@@ -172,79 +172,60 @@ const TicketScreen = ({}) => {
   };
 
   const renderTicketItem = ({ item }) => (
-    <TouchableOpacity style={styles.ticketCard}>
-      {/* Ticket Header */}
-      <View style={styles.ticketHeader}>
-        <View style={styles.ticketInfo}>
-          <Text style={styles.ticketId}>#{item.ticketId || item.id}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
-            <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
-          </View>
+  <TouchableOpacity style={styles.ticketCard}>
+    <View style={styles.ticketContent}>
+      {/* Title + Status */}
+      <View style={styles.titleRow}>
+        <Text style={styles.eventTitle} numberOfLines={2}>
+          {item.eventName}
+        </Text>
+        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
+          <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
         </View>
       </View>
 
-      {/* Event Image */}
-      {item.eventImage && (
-        <Image 
-          source={{ uri: item.eventImage }}
-          style={styles.eventImage}
-          resizeMode="cover"
-        />
+      {/* Time + Location */}
+      <View style={styles.row}>
+        <Text style={styles.iconText}>🗓</Text>
+        <Text style={styles.infoText}>
+          {formatDateTime(item.eventStartTime)}
+        </Text>
+      </View>
+
+      {item.eventAddress && (
+        <View style={styles.row}>
+          <Text style={styles.iconText}>📍</Text>
+          <Text style={styles.infoText}>{item.eventAddress}</Text>
+        </View>
       )}
 
-      {/* Event Details */}
-      <View style={styles.eventDetails}>
-        <Text style={styles.eventName} numberOfLines={2}>
-          {item.eventName || item.title || 'Tên sự kiện'}
-        </Text>
-        
-        {item.eventAddress && (
-          <Text style={styles.eventAddress} numberOfLines={2}>
-            📍 {item.eventAddress}
-          </Text>
-        )}
+      {/* Divider */}
+      <View style={styles.divider} />
 
-        <View style={styles.timeContainer}>
-          <Text style={styles.timeText}>
-            🗓️ {formatDateTime(item.eventStartTime || item.startTime)}
-          </Text>
-          {item.eventEndTime && (
-            <Text style={styles.timeText}>
-              ⏰ Kết thúc: {formatDateTime(item.eventEndTime)}
-            </Text>
-          )}
+      {/* Ticket Info */}
+      <View style={styles.ticketRow}>
+        <View style={styles.ticketInfoBlock}>
+          <Text style={styles.label}>Loại vé</Text>
+          <Text style={styles.value}>{item.ticketType || 'Không rõ'}</Text>
         </View>
-
-        {/* Ticket Details */}
-        <View style={styles.ticketDetails}>
-          {item.ticketType && (
-            <Text style={styles.ticketType}>
-              🎫 Loại vé: {item.ticketType}
-            </Text>
-          )}
-          {item.quantity && (
-            <Text style={styles.quantity}>
-              Số lượng: {item.quantity}
-            </Text>
-          )}
-          {item.price && (
-            <Text style={styles.price}>
-              💰 {formatCurrency(item.price)}
-            </Text>
-          )}
+        <View style={styles.ticketInfoBlock}>
+          <Text style={styles.label}>Số lượng</Text>
+          <Text style={styles.value}>{item.quantity}</Text>
         </View>
-
-        {/* Purchase Date */}
-        {item.purchaseDate && (
-          <Text style={styles.purchaseDate}>
-            Mua ngày: {formatDateTime(item.purchaseDate)}
-          </Text>
-        )}
+        <View style={styles.ticketInfoBlock}>
+          <Text style={styles.label}>Giá</Text>
+          <Text style={styles.value}>{formatCurrency(item.price)}</Text>
+        </View>
       </View>
-    </TouchableOpacity>
-  );
 
-  
+      {/* QR Placeholder */}
+      <View style={styles.qrContainer}>
+        <Text style={styles.qrHint}>[Chỗ hiển thị mã QR tại đây]</Text>
+      </View>
+    </View>
+  </TouchableOpacity>
+);
+
 
   if (loading) {
     return (
@@ -328,9 +309,6 @@ const TicketScreen = ({}) => {
             colors={['#fb7e3f']}
           />
         }
-        contentContainerStyle={
-          filteredTickets.length === 0 ? styles.emptyList : styles.ticketsList
-        }
         showsVerticalScrollIndicator={false}
       />
     </SafeAreaView>
@@ -388,8 +366,7 @@ const styles = StyleSheet.create({
   subTabContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingVertical: 16,
-    backgroundColor: '#fff',
+    paddingVertical: 6,
   },
   subTabButton: {
     paddingBottom: 4,
@@ -440,7 +417,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   statusBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
   },
@@ -496,11 +473,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fb7e3f',
   },
-  purchaseDate: {
-    fontSize: 10,
-    color: '#999',
-    fontStyle: 'italic',
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -509,33 +481,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 8,
     color: '#666',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  emptyList: {
-    flexGrow: 1,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 24,
   },
   buyButton: {
     backgroundColor: '#fb7e3f',
@@ -546,5 +491,78 @@ const styles = StyleSheet.create({
   buyText: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+
+  // ✅ PHẦN STYLE MỚI + CẬP NHẬT
+  ticketContent: {
+    padding: 16,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  eventTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#333',
+    flex: 1,
+    paddingRight: 8,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  iconText: {
+    fontSize: 14,
+    marginRight: 4,
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#555',
+    flex: 1,
+    flexWrap: 'wrap',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#eee',
+    marginVertical: 10,
+  },
+  ticketRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  ticketInfoBlock: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  label: {
+    fontSize: 12,
+    color: '#999',
+  },
+  value: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  qrContainer: {
+    alignItems: 'center',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  qrHint: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    color: '#bbb',
   },
 });
