@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getTicketByUserIdAxios } from '../services/userService';
+import Svg, { Circle } from 'react-native-svg';
 
 const TicketScreen = ({}) => {
   const [mainTab, setMainTab] = useState('all');
@@ -83,7 +84,8 @@ const TicketScreen = ({}) => {
             totalAmount,
             eventName: ticket.eventName,
             eventAddress: ticket.eventLocation,
-            price: ticket.unitPrice
+            price: ticket.unitPrice,
+            qrCode: ticket.qrCode,
           }));
           allTickets.push(...enriched);
         }
@@ -171,8 +173,27 @@ const TicketScreen = ({}) => {
     fetchUserTickets(true);
   };
 
+  const TicketNotch = ({ side }) => (
+    <Svg
+      width="20"
+      height="40"
+      style={{
+        position: 'absolute',
+        top: '50%',
+        [side]: -10,
+        transform: [{ translateY: -20 }],
+        zIndex: 1,
+      }}
+    >
+      <Circle cx="10" cy="20" r="10" fill="#fff6f3" />
+    </Svg>
+  );
+
+
   const renderTicketItem = ({ item }) => (
   <TouchableOpacity style={styles.ticketCard}>
+      <TicketNotch side="left" />
+      <TicketNotch side="right" />
     <View style={styles.ticketContent}>
       {/* Title + Status */}
       <View style={styles.titleRow}>
@@ -186,7 +207,6 @@ const TicketScreen = ({}) => {
 
       {/* Time + Location */}
       <View style={styles.row}>
-        <Text style={styles.iconText}>🗓</Text>
         <Text style={styles.infoText}>
           {formatDateTime(item.eventStartTime)}
         </Text>
@@ -194,7 +214,6 @@ const TicketScreen = ({}) => {
 
       {item.eventAddress && (
         <View style={styles.row}>
-          <Text style={styles.iconText}>📍</Text>
           <Text style={styles.infoText}>{item.eventAddress}</Text>
         </View>
       )}
@@ -220,7 +239,15 @@ const TicketScreen = ({}) => {
 
       {/* QR Placeholder */}
       <View style={styles.qrContainer}>
-        <Text style={styles.qrHint}>[Chỗ hiển thị mã QR tại đây]</Text>
+        {item.qrCode ? (
+          <Image
+            source={{ uri: `data:image/png;base64,${item.qrCode}` }}
+            style={styles.qrImage}
+            resizeMode="contain"
+          />
+        ) : (
+          <Text style={styles.qrHint}>Không có mã QR</Text>
+        )}
       </View>
     </View>
   </TouchableOpacity>
@@ -388,16 +415,19 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   ticketCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginVertical: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    overflow: 'hidden',
-  },
+  marginVertical: 10,
+  marginHorizontal: 16,
+  backgroundColor: '#fff',
+  borderRadius: 16,
+  padding: 16,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.1,
+  shadowRadius: 4,
+  elevation: 4,
+  overflow: 'visible', // cần cho notch
+  position: 'relative',
+},
   ticketHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -493,7 +523,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 
-  // ✅ PHẦN STYLE MỚI + CẬP NHẬT
   ticketContent: {
     padding: 16,
   },
@@ -514,10 +543,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 4,
-  },
-  iconText: {
-    fontSize: 14,
-    marginRight: 4,
   },
   infoText: {
     fontSize: 14,
@@ -564,5 +589,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontStyle: 'italic',
     color: '#bbb',
+  },
+    qrImage: {
+    width: 150,
+    height: 150,
   },
 });
