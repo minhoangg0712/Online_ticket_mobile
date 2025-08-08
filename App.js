@@ -7,6 +7,7 @@ import AccountScreen from './screens/AccountScreen';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
+import DetailEventScreen from './screens/DetailEventScreen';
 import { AuthProvider } from './services/authContext';
 
 
@@ -25,6 +26,8 @@ export default function App() {
           <Stack.Screen name="Home" component={TabNavigator} />       
           <Stack.Screen name="Search" component={SearchScreen} />
           <Stack.Screen name="Account" component={AccountScreen} />
+          <Stack.Screen name="SearchScreen" component={SearchScreen} />
+          <Stack.Screen name="DetailEventScreen" component={DetailEventScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </AuthProvider>

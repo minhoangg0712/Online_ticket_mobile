@@ -2,10 +2,10 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-
 import Home from '../screens/HomeScreen';
 import Ticket from '../screens/TicketScreen';
 import Profile from '../screens/ProfileScreen';
+import SearchScreen from '../screens/SearchScreen';
 import PaymentScreen from '../screens/PaymentScreen';
 import SelectTicketPage from '../screens/SelectTicketPage';
 import DetailEventScreen from '../screens/DetailEventScreen';
@@ -18,6 +18,7 @@ const HomeStack = () => {
   return (
     <Stack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
       <Stack.Screen name="HomeMain" component={Home} />
+      <Stack.Screen name="Search" component={SearchScreen} />
       <Stack.Screen name="Chi tiết sự kiện" component={DetailEventScreen} />
       <Stack.Screen name="Chọn vé" component={SelectTicketPage} />
       <Stack.Screen name="Thanh toán" component={PaymentScreen} />
