@@ -19,12 +19,16 @@ import eventService from '../services/eventService';
 console.log('eventService', eventService);
 const { width } = Dimensions.get('window');
 
-type HomeStackParamList = {
+export type HomeStackParamList = {
   HomeMain: undefined;
+  Search: undefined;
   'Chi tiết sự kiện': { event: any };
   'Chọn vé': { event: any };
-  'Thanh toán': { eventId: number; tickets: { ticketId: number; quantity: number }[]; event: any };
-  Search: undefined;
+  'Thanh toán': {
+    eventId: number;
+    tickets: { ticketId: number; quantity: number }[];
+    event: any;
+  };
 };
 
 type NavigationProp = NativeStackNavigationProp<HomeStackParamList>;
