@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Home from '../screens/HomeScreen';
 import Ticket from '../screens/TicketScreen';
 import Profile from '../screens/ProfileScreen';
+import ChatBot from '../screens/ChatBotScreen'; 
 import SearchScreen from '../screens/SearchScreen';
 import PaymentScreen from '../screens/PaymentScreen';
 import SelectTicketPage from '../screens/SelectTicketPage';
@@ -60,6 +61,8 @@ const TabNavigator = () => {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'Vé của tôi') {
             iconName = focused ? 'ticket' : 'ticket-outline';
+          } else if (route.name === 'Trợ lý ảo') {
+            iconName = focused ? 'person' : 'chatbubble-outline';
           } else if (route.name === 'Tài khoản') {
             iconName = focused ? 'person' : 'person-outline';
           }
@@ -76,6 +79,7 @@ const TabNavigator = () => {
       {/* Sử dụng Stack thay vì component trực tiếp */}
       <Tab.Screen name="Trang chủ" component={HomeStack} />
       <Tab.Screen name="Vé của tôi" component={TicketStack} />
+      <Tab.Screen name="Trợ lý ảo" component={ChatBot} />
       <Tab.Screen name="Tài khoản" component={ProfileStack} />
     </Tab.Navigator>
   );
