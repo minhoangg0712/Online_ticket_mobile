@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Dimensions,
   Image,
+  Modal,
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -17,14 +18,13 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Picker } from '@react-native-picker/picker';
 import searchService from '../services/searchService';
 import eventService from '../services/eventService';
+import { Calendar } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
 type SearchStackParamList = {
   SearchScreen: undefined;
   'Chi tiết sự kiện': { event: any };
-  'Chọn vé': { event: any };
-  'Thanh toán': { eventId: number; tickets: { ticketId: number; quantity: number }[]; event: any };
 };
 
 type NavigationProp = NativeStackNavigationProp<SearchStackParamList, 'SearchScreen'>;
@@ -49,8 +49,10 @@ export default function SearchScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>(''); 
-  const [selectedAddress, setSelectedAddress] = useState<string>(''); // thêm state cho địa chỉ
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedAddress, setSelectedAddress] = useState<string>('');
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [showAddressPicker, setShowAddressPicker] = useState(false);
 
   const categories = [
     { label: 'Tất cả', value: '' },
@@ -70,18 +72,10 @@ export default function SearchScreen() {
   ];
 
   const handleEventPress = async (eventId: string | number) => {
-    if (!eventId) {
-      setError('Không thể mở chi tiết sự kiện');
-      return;
-    }
     try {
       const eventDetails = await eventService.getEventDetails(String(eventId));
-      if (!eventDetails) {
-        setError('Không thể tải thông tin sự kiện');
-        return;
-      }
       navigation.navigate('Chi tiết sự kiện', { event: eventDetails.data || eventDetails });
-    } catch (error) {
+    } catch {
       setError('Lỗi khi tải chi tiết sự kiện');
     }
   };
@@ -105,54 +99,23 @@ export default function SearchScreen() {
         address: selectedAddress,
       });
 
-      let eventList: Event[] = [];
-      if (Array.isArray(data.events)) {
-        eventList = data.events
-          .filter(event => event && event.eventId)
-          .map(event => ({
-            ...event,
-            eventId: String(event.eventId),
-            minPrice: event.minPrice ? parseFloat(String(event.minPrice)) || event.minPrice : 0,
-            eventName: event.eventName || 'Sự kiện không tên',
-            startTime: event.startTime || new Date().toISOString(),
-          }));
-      }
+      const eventList: Event[] = (data.events || [])
+        .filter(event => event?.eventId)
+        .map(event => ({
+          ...event,
+          eventId: String(event.eventId),
+          minPrice: event.minPrice ? parseFloat(String(event.minPrice)) || event.minPrice : 0,
+          eventName: event.eventName || 'Sự kiện không tên',
+          startTime: event.startTime || new Date().toISOString(),
+        }));
 
       setResults(eventList);
-      if (eventList.length === 0) {
-        setError('Không tìm thấy sự kiện nào phù hợp');
-      }
+      if (eventList.length === 0) setError('Không tìm thấy sự kiện nào phù hợp');
     } catch (err: any) {
       setError(err.message || 'Đã xảy ra lỗi khi tìm kiếm');
       setResults([]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const formatDateTime = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'Thời gian không xác định';
-      return date.toLocaleString('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    } catch {
-      return 'Thời gian không xác định';
-    }
-  };
-
-  const formatPrice = (price: string | number) => {
-    try {
-      const numPrice = typeof price === 'string' ? parseFloat(price) : price;
-      if (isNaN(numPrice) || numPrice <= 0) return 'Miễn phí';
-      return `${numPrice.toLocaleString('vi-VN')} VNĐ`;
-    } catch {
-      return 'Miễn phí';
     }
   };
 
@@ -190,31 +153,60 @@ export default function SearchScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Dropdown category */}
-        <View style={styles.dropdownContainer}>
-          <Picker
-            selectedValue={selectedCategory}
-            onValueChange={(value) => setSelectedCategory(value)}
-            style={styles.picker}
-          >
-            {categories.map(cat => (
-              <Picker.Item key={cat.value} label={cat.label} value={cat.value} />
-            ))}
-          </Picker>
+        {/* Filter icons */}
+        <View style={styles.filterRow}>
+          <TouchableOpacity style={styles.filterBtn} onPress={() => setShowCategoryPicker(true)}>
+            <Feather name="grid" size={22} color="#FF7E42" />
+            <Text style={styles.filterLabel}>
+              {categories.find(cat => cat.value === selectedCategory)?.label || 'Tất cả'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.filterBtn} onPress={() => setShowAddressPicker(true)}>
+            <Ionicons name="location-outline" size={22} color="#FF7E42" />
+            <Text style={styles.filterLabel}>
+              {address.find(addr => addr.value === selectedAddress)?.label || 'Toàn quốc'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Dropdown address */}
-        <View style={styles.dropdownContainer}>
-          <Picker
-            selectedValue={selectedAddress}
-            onValueChange={(value) => setSelectedAddress(value)}
-            style={styles.picker}
-          >
-            {address.map(addr => (
-              <Picker.Item key={addr.value} label={addr.label} value={addr.value} />
-            ))}
-          </Picker>
-        </View>
+        {/* Category Picker Modal */}
+        <Modal transparent visible={showCategoryPicker} animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Picker
+                selectedValue={selectedCategory}
+                onValueChange={(value) => {
+                  setSelectedCategory(value);
+                  setShowCategoryPicker(false);
+                }}
+              >
+                {categories.map(cat => (
+                  <Picker.Item key={cat.value} label={cat.label} value={cat.value} />
+                ))}
+              </Picker>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Address Picker Modal */}
+        <Modal transparent visible={showAddressPicker} animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Picker
+                selectedValue={selectedAddress}
+                onValueChange={(value) => {
+                  setSelectedAddress(value);
+                  setShowAddressPicker(false);
+                }}
+              >
+                {address.map(addr => (
+                  <Picker.Item key={addr.value} label={addr.label} value={addr.value} />
+                ))}
+              </Picker>
+            </View>
+          </View>
+        </Modal>
 
         {/* Error */}
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -235,23 +227,27 @@ export default function SearchScreen() {
                 onPress={() => handleEventPress(item.eventId)}
               >
                 <View style={styles.cardImageContainer}>
-                  {item.logoUrl ? (
-                    <Image source={{ uri: item.logoUrl }} style={styles.cardImage} resizeMode="cover" />
+                  {item.backgroundUrl ? (
+                    <Image source={{ uri: item.backgroundUrl }} style={styles.cardImage} />
                   ) : (
-                    <View style={[styles.cardImage, styles.placeholderImage]}>
-                      <Ionicons name="image-outline" size={24} color="#ccc" />
+                    <View style={styles.placeholderImage}>
+                      <Ionicons name="image-outline" size={28} color="#ccc" />
                     </View>
                   )}
                 </View>
                 <View style={styles.cardContent}>
-                  <Text style={styles.cardTitle} numberOfLines={2}>{item.eventName}</Text>
+                  <Text style={styles.cardTitle} numberOfLines={1}>{item.eventName}</Text>
                   <View style={styles.cardInfoRow}>
-                    <Ionicons name="calendar" size={12} color="#FF7E42" />
-                    <Text style={styles.cardDate}>{formatDateTime(item.startTime)}</Text>
+                    <Calendar size={12} color="#FF7E42" />
+                    <Text style={styles.cardDate}>
+                      {new Date(item.startTime).toLocaleDateString('vi-VN')}
+                    </Text>
                   </View>
                   <Text style={styles.cardPrice}>
                     <Text style={{ fontSize: 15, color: '#FF7E42' }}>Từ </Text>
-                    {formatPrice(item.minPrice)}
+                    {Number(item.minPrice) > 0 
+                      ? `${Number(item.minPrice).toLocaleString('vi-VN')} VNĐ` 
+                      : 'Miễn phí'}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -271,20 +267,54 @@ const styles = StyleSheet.create({
   searchBar: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 2, borderColor: '#FF7E42', paddingVertical: 6, marginBottom: 10 },
   input: { marginLeft: 8, flex: 1, paddingVertical: 4, fontSize: 16 },
   searchIconBtn: { paddingHorizontal: 8 },
-  dropdownContainer: { borderWidth: 1, borderColor: '#FF7E42', borderRadius: 8, marginBottom: 15 },
-  picker: { height: 50, width: '100%' },
+  filterRow: { flexDirection: 'row', gap: 15, marginBottom: 15 },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    width: '80%',
+    padding: 10,
+  },
   errorText: { color: 'red', marginTop: 10, marginBottom: 10, textAlign: 'center', fontSize: 14 },
-  resultsContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12 },
+  resultsContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 10 },
   noResultContainer: { alignItems: 'center', paddingVertical: 40 },
   noResultText: { fontSize: 16, color: '#666', marginBottom: 5, marginTop: 10 },
   noResultSubText: { fontSize: 14, color: '#999', textAlign: 'center' },
-  eventCard: { width: '48%', backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden', marginBottom: 15, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
+  eventCard: {
+    backgroundColor: '#fff6f2',
+    borderRadius: 16,
+    overflow: 'hidden',
+    width: (width - 20 * 2 - 10) / 2,
+    marginBottom: 15,
+  },
   cardImageContainer: { width: '100%', height: 100, backgroundColor: '#f0f0f0' },
   cardImage: { width: '100%', height: '100%' },
-  placeholderImage: { justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f0f0' },
+  placeholderImage: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f0f0' },
   cardContent: { padding: 8 },
   cardTitle: { fontSize: 14, fontWeight: '600', marginBottom: 4, color: '#333', lineHeight: 18 },
   cardInfoRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4, marginBottom: 4 },
   cardDate: { fontSize: 12, color: '#666', marginLeft: 4, flex: 1 },
   cardPrice: { fontSize: 13, marginTop: 4, color: '#333', fontWeight: '500' },
+  filterBtn: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  paddingVertical: 8,
+  paddingHorizontal: 12,
+  borderWidth: 1,
+  borderColor: '#FF7E42',
+  borderRadius: 8,
+  backgroundColor: '#fff6f2',
+},
+filterLabel: {
+  marginLeft: 6,
+  fontSize: 14,
+  color: '#FF7E42',
+  fontWeight: '500',
+},
+
 });
