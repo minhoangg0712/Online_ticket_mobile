@@ -78,6 +78,94 @@ const eventService = {
       throw error;
     }
   },
+  // Hàm lấy danh sách bình luận của sự kiện
+  getEventComments: async (eventId) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await axios.get(`${BASE_URL}/review/event/${eventId}`, {
+        headers,
+        timeout: 5000,
+      });
+
+      console.log('Comments response:', JSON.stringify(response.data, null, 2));
+
+      // Kiểm tra và lấy reviewDetails
+      const reviews = response.data.data?.reviewDetails || [];
+      if (!Array.isArray(reviews)) {
+        console.warn('reviewDetails is not an array:', reviews);
+        return [];
+      }
+
+      // Ánh xạ dữ liệu sang định dạng Comment
+      return reviews.map(review => ({
+        commentId: review.reviewId,
+        userName: review.userFullName,
+        commentText: review.comment,
+        createdAt: review.reviewDate,
+        rating: review.rating,
+      }));
+    } catch (error) {
+      console.error('Error fetching event comments:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        url: `${BASE_URL}/review/event/${eventId}`,
+      });
+      throw error;
+    }
+  },
+  postEventComment: async (eventId, rating, comment) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        throw new Error('No token found, please login');
+      }
+
+      const headers = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      };
+
+      const body = {
+        rating,
+        comment,
+      };
+
+      const response = await axios.post(`${BASE_URL}/review/upload/${eventId}`, body, {
+        headers,
+        timeout: 5000,
+      });
+
+      console.log('Post comment response:', JSON.stringify(response.data, null, 2));
+
+      // Giả sử API trả về bình luận mới trong response.data.data
+      const newComment = response.data.data || {
+        commentId: Date.now(), // ID tạm thời nếu API không trả về
+        userName: 'Người dùng hiện tại', // Cần API trả về userFullName
+        commentText: comment,
+        createdAt: new Date().toISOString(),
+        rating,
+      };
+
+      return newComment;
+    } catch (error) {
+      console.error('Error posting event comment:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        url: `${BASE_URL}/review/upload/${eventId}`,
+      });
+      throw error;
+    }
+  },
 };
 
 export default eventService;
