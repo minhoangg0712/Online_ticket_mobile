@@ -39,6 +39,7 @@ interface Comment {
   commentText: string;
   createdAt: string;
   rating?: number;
+  userId?: number; // Added for edit check
 }
 
 interface Props {
@@ -53,6 +54,9 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
   const [comments, setComments] = useState<Comment[]>([]); // State for fetched comments
   const [loadingComments, setLoadingComments] = useState(false);
   const [errorComments, setErrorComments] = useState<string | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null); // State for editing comment
+  const [editingComment, setEditingComment] = useState('');
+  const [editingRating, setEditingRating] = useState(0);
 
   // Check if no event is provided
   if (!event) {
@@ -189,9 +193,57 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
+  // Handle edit comment
+  const handleUpdateComment = async (reviewId: number) => {
+    if (!editingComment.trim()) {
+      Alert.alert('Thông báo', 'Vui lòng nhập nội dung bình luận!');
+      return;
+    }
+    if (editingRating === 0) {
+      Alert.alert('Thông báo', 'Vui lòng chọn đánh giá (1-5 sao)!');
+      return;
+    }
+
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        Alert.alert('Thông báo', 'Vui lòng đăng nhập để cập nhật bình luận!');
+        navigation.navigate('Login');
+        return;
+      }
+
+      await eventService.updateEventComment(reviewId, editingRating, editingComment);
+      // Cập nhật danh sách bình luận
+      const updatedComments = comments.map(c => 
+        c.commentId === reviewId ? { ...c, commentText: editingComment, rating: editingRating } : c
+      );
+      setComments(updatedComments);
+      setEditingCommentId(null);
+      setEditingComment('');
+      setEditingRating(0);
+      Alert.alert('Thành công', 'Bình luận đã được cập nhật!');
+    } catch (error: any) {
+      console.error('Error updating comment:', error);
+      Alert.alert('Lỗi', 'Không thể cập nhật bình luận. Vui lòng thử lại sau.');
+    }
+  };
+
+  // Start editing a comment
+  const startEditing = (comment: Comment) => {
+    setEditingCommentId(comment.commentId);
+    setEditingComment(comment.commentText);
+    setEditingRating(comment.rating || 0);
+  };
+
+  // Cancel editing
+  const cancelEditing = () => {
+    setEditingCommentId(null);
+    setEditingComment('');
+    setEditingRating(0);
+  };
+
   // Handle text input change
   const handleCommentChange = (text: string) => {
-
     setComment(text);
   };
 
@@ -209,6 +261,27 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
               size={24}
               color={star <= rating ? '#FB923C' : '#D1D5DB'}
               fill={star <= rating ? '#FB923C' : 'none'}
+            />
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+  };
+
+  // Render editing rating stars
+  const renderEditingRatingStars = () => {
+    return (
+      <View style={styles.ratingContainer}>
+        {[1, 2, 3, 4, 5].map((star) => (
+          <TouchableOpacity
+            key={star}
+            onPress={() => setEditingRating(star)}
+            style={styles.starButton}
+          >
+            <Star
+              size={24}
+              color={star <= editingRating ? '#FB923C' : '#D1D5DB'}
+              fill={star <= editingRating ? '#FB923C' : 'none'}
             />
           </TouchableOpacity>
         ))}
@@ -336,6 +409,29 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
                         minute: '2-digit',
                       })}
                     </Text>
+                    {editingCommentId === comment.commentId ? (
+                      <View style={styles.editContainer}>
+                        {renderEditingRatingStars()}
+                        <TextInput
+                          style={styles.editInput}
+                          value={editingComment}
+                          onChangeText={setEditingComment}
+                          multiline
+                        />
+                        <View style={styles.editButtons}>
+                          <TouchableOpacity style={styles.updateButton} onPress={() => handleUpdateComment(comment.commentId)}>
+                            <Text style={styles.updateButtonText}>Cập nhật</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity style={styles.cancelButton} onPress={cancelEditing}>
+                            <Text style={styles.cancelButtonText}>Hủy</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ) : (
+                      <TouchableOpacity style={styles.editButton} onPress={() => startEditing(comment)}>
+                        <Text style={styles.editButtonText}>Chỉnh sửa</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 ))
               ) : (
@@ -530,6 +626,55 @@ const styles = StyleSheet.create({
   commentDate: {
     fontSize: 12,
     color: '#6B7280',
+  },
+  editButton: {
+    backgroundColor: '#E5E7EB',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  editButtonText: {
+    fontSize: 12,
+    color: '#1F2937',
+  },
+  editContainer: {
+    marginTop: 8,
+  },
+  editInput: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    padding: 8,
+    fontSize: 14,
+    minHeight: 60,
+    backgroundColor: '#F9FAFB',
+  },
+  editButtons: {
+    flexDirection: 'row',
+    marginTop: 8,
+  },
+  updateButton: {
+    backgroundColor: '#FB923C',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  updateButtonText: {
+    fontSize: 14,
+    color: 'white',
+  },
+  cancelButton: {
+    backgroundColor: '#D1D5DB',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  cancelButtonText: {
+    fontSize: 14,
+    color: 'white',
   },
   errorContainer: {
     alignItems: 'center',

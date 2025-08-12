@@ -166,6 +166,42 @@ const eventService = {
       throw error;
     }
   },
+   // Hàm cập nhật bình luận
+  updateEventComment: async (reviewId, rating, comment) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        throw new Error('No token found, please login');
+      }
+
+      const headers = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      };
+
+      const body = {
+        rating,
+        comment,
+      };
+
+      const response = await axios.put(`${BASE_URL}/review/update/${reviewId}`, body, {
+        headers,
+        timeout: 5000,
+      });
+
+      console.log('Update comment response:', JSON.stringify(response.data, null, 2));
+
+      return response.data;
+    } catch (error) {
+      console.error('Error updating event comment:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        url: `${BASE_URL}/review/update/${reviewId}`,
+      });
+      throw error;
+    }
+  },
 };
 
 export default eventService;
