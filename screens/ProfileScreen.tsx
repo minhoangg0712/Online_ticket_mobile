@@ -46,7 +46,7 @@ const ProfileScreen = () => {
           setIsLoggedIn(false);
         }
       } catch (error) {
-        console.error('Lỗi khi kiểm tra token:', error);
+  // ...existing code...
         setIsLoggedIn(false);
       }
     };
@@ -75,7 +75,7 @@ const ProfileScreen = () => {
         routes: [{ name: 'Login' }],
       });
     } catch (error) {
-      console.error('Lỗi xoá tài khoản:', error);
+  // ...existing code...
       const errorMessage =
         error.response?.data || error.message || 'Không thể xoá tài khoản';
       Alert.alert('Lỗi', errorMessage);

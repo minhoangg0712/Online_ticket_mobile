@@ -22,7 +22,6 @@ const eventService = {
         headers,
       });
 
-   
 
       // Get correct path to events array
       const events = Array.isArray(response?.data?.data?.listEvents)
@@ -66,10 +65,9 @@ const eventService = {
       const response = await axios.get(`${BASE_URL}/events/${eventId}`, {
         headers,
       });
-
-     
-
       return response.data.data; // Trả về dữ liệu chi tiết sự kiện
+
+
     } catch (error) {
       console.error(
         'Error fetching event details:',
