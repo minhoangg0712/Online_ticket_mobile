@@ -93,7 +93,6 @@ export default function RegisterScreen() {
         data.confirmPassword
       );
       setMessage('Đăng ký thành công!');
-      console.log('Token:', res.token);
       navigation.navigate('Login');
     } catch (error) {
       if (Array.isArray(error)) {

@@ -15,7 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getTicketByUserIdAxios } from '../services/userService';
 import Svg, { Circle } from 'react-native-svg';
 
-const TicketScreen = ({}) => {
+const TicketScreen = ({ navigation }) => {
   const [mainTab, setMainTab] = useState('all');
   const [subTab, setSubTab] = useState('upcoming')
   const [userId, setUserId] = useState(null);
@@ -36,13 +36,17 @@ const TicketScreen = ({}) => {
             console.log('✅ User ID (sub):', parsedUser.sub);
           } else {
             console.warn('⚠️ Không tìm thấy sub trong user');
+            navigation.replace('Login');
           }
+        } else {
+          // Không có token, chuyển sang đăng nhập
+          navigation.replace('Login');
         }
       } catch (err) {
         console.error('❌ Lỗi khi lấy user từ AsyncStorage:', err);
+  navigation.replace('Login');
       }
     };
-
     fetchUserId();
   }, []);
 

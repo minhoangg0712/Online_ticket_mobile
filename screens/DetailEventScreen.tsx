@@ -78,7 +78,7 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
   useEffect(() => {
     const fetchComments = async () => {
       if (!isEventComplete) {
-        console.log('Event is not complete, skipping comment fetch');
+  // ...existing code...
         return;
       }
 
@@ -86,10 +86,10 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
       setErrorComments(null);
       try {
         const fetchedComments = await eventService.getEventComments(event.eventId);
-        console.log('Fetched comments:', fetchedComments);
+  // ...existing code...
         setComments(fetchedComments);
       } catch (error: any) {
-        console.error('Failed to fetch comments:', error);
+  // ...existing code...
         setErrorComments('Không thể tải bình luận. Vui lòng kiểm tra kết nối mạng và thử lại.');
         Alert.alert(
           'Lỗi',
@@ -149,7 +149,7 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
 
     try {
       const token = await AsyncStorage.getItem('token');
-      console.log('Token:', token);
+  // ...existing code...
       if (!token) {
         Alert.alert('Thông báo', 'Vui lòng đăng nhập để mua vé!');
         navigation.navigate('Login');
@@ -157,7 +157,7 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
       }
       navigation.navigate('Chọn vé', { event });
     } catch (error) {
-      console.error('Error checking token:', error);
+  // ...existing code...
       Alert.alert('Lỗi', 'Không thể kiểm tra trạng thái đăng nhập. Vui lòng thử lại.');
     }
   };
@@ -188,7 +188,7 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
       setRating(0);
       Alert.alert('Thành công', 'Bình luận đã được gửi!');
     } catch (error: any) {
-      console.error('Error submitting comment:', error);
+  // ...existing code...
       Alert.alert('Lỗi', 'Không thể gửi bình luận. Vui lòng thử lại sau.');
     }
   };
@@ -223,7 +223,7 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
       setEditingRating(0);
       Alert.alert('Thành công', 'Bình luận đã được cập nhật!');
     } catch (error: any) {
-      console.error('Error updating comment:', error);
+  // ...existing code...
       Alert.alert('Lỗi', 'Không thể cập nhật bình luận. Vui lòng thử lại sau.');
     }
   };
