@@ -22,7 +22,7 @@ const eventService = {
         headers,
       });
 
-      console.log('API response.data:', response.data);
+   
 
       // Get correct path to events array
       const events = Array.isArray(response?.data?.data?.listEvents)
@@ -67,7 +67,7 @@ const eventService = {
         headers,
       });
 
-      console.log('Event details response:', response.data);
+     
 
       return response.data.data; // Trả về dữ liệu chi tiết sự kiện
     } catch (error) {
@@ -94,8 +94,6 @@ const eventService = {
         headers,
         timeout: 5000,
       });
-
-      console.log('Comments response:', JSON.stringify(response.data, null, 2));
 
       // Kiểm tra và lấy reviewDetails
       const reviews = response.data.data?.reviewDetails || [];

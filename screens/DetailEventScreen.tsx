@@ -78,7 +78,6 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
   useEffect(() => {
     const fetchComments = async () => {
       if (!isEventComplete) {
-        console.log('Event is not complete, skipping comment fetch');
         return;
       }
 
@@ -86,7 +85,7 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
       setErrorComments(null);
       try {
         const fetchedComments = await eventService.getEventComments(event.eventId);
-        console.log('Fetched comments:', fetchedComments);
+      
         setComments(fetchedComments);
       } catch (error: any) {
         console.error('Failed to fetch comments:', error);
@@ -149,7 +148,7 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
 
     try {
       const token = await AsyncStorage.getItem('token');
-      console.log('Token:', token);
+     
       if (!token) {
         Alert.alert('Thông báo', 'Vui lòng đăng nhập để mua vé!');
         navigation.navigate('Login');
@@ -499,7 +498,8 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     paddingHorizontal: 16,
-    marginTop: -20,
+    
+    paddingTop: 20, // Added padding to avoid sticking to header
   },
   eventCard: {
     backgroundColor: 'white',

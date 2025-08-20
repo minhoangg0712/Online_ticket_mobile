@@ -16,7 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import eventService from '../services/eventService';
 
-console.log('eventService', eventService);
+
 const { width } = Dimensions.get('window');
 
 export type HomeStackParamList = {
@@ -82,9 +82,9 @@ const Home = () => {
   // Cập nhật hàm handleEventPress để sử dụng Stack Navigation
   const handleEventPress = async (eventId: string) => {
     try {
-      console.log('Navigating to event details for eventId:', eventId);
+      
       const eventDetails = await eventService.getEventDetails(eventId);
-      console.log('Event details response:', eventDetails);
+   
       navigation.navigate('Chi tiết sự kiện', { event: eventDetails.data || eventDetails });
     } catch (error) {
       console.error('Error navigating to event details:', error);

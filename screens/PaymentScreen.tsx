@@ -92,11 +92,7 @@ export default function PaymentScreen({ navigation, route }: Props) {
       return;
     }
 
-    // Log ticket data for debugging
-    console.log('Ticket Types:', event.ticketTypes);
-    console.log('Tickets Total:', event.ticketsTotal);
-    console.log('Tickets Sold:', event.ticketsSold);
-    console.log('Requested Tickets:', tickets);
+    
 
     // Check ticket availability for "Thường" or "Nguyên"
     const ticketTypeKey = event.ticketTypes[tickets[0].ticketId.toString()];
@@ -110,7 +106,7 @@ export default function PaymentScreen({ navigation, route }: Props) {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      console.log('Token:', token);
+  
       if (!token) {
         Alert.alert('Thông báo', 'Vui lòng đăng nhập để mua vé!');
         setLoading(false);
@@ -132,7 +128,7 @@ export default function PaymentScreen({ navigation, route }: Props) {
         },
         body: JSON.stringify(body),
       });
-      console.log('Response status:', response.status);
+   
       if (!response.ok) {
         const errorData = await response.json();
         console.log('Error response:', errorData);
