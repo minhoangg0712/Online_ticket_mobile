@@ -69,8 +69,6 @@ const LoginScreen: React.FC = () => {
     } else if (typeof error === 'object' && error !== null && 'message' in error) {
       errMsg = (error as any).message;
     }
-
-    console.log('Lỗi khi login:', error);
     setMessage(errMsg);
   } finally {
     setIsLoading(false);

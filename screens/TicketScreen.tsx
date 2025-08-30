@@ -33,7 +33,6 @@ const TicketScreen = ({ navigation }) => {
           const parsedUser = JSON.parse(userData);
           if (parsedUser?.sub) {
             setUserId(parsedUser.sub);
-            console.log('✅ User ID (sub):', parsedUser.sub);
           } else {
             console.warn('⚠️ Không tìm thấy sub trong user');
             navigation.replace('Login');

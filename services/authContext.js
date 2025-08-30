@@ -34,7 +34,6 @@ export const AuthProvider = ({ children }) => {
           });
         }
       } catch (err) {
-        console.log('Lỗi khi load user:', err);
         setUser(null);
       } finally {
         setLoading(false);
