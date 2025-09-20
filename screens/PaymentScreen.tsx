@@ -23,7 +23,8 @@ import WebView from 'react-native-webview';
 const { width } = Dimensions.get('window');
 
 // Use machine IP or 10.0.2.2 for emulator
-const API_URL = 'http://10.0.2.2:8080/api/orders'; // Replace with machine IP for physical device
+const API_URL = 'http://10.0.2.2:8080/api/orders';
+const DISCOUNT_API_URL = 'http://10.0.2.2:8080/api/discounts';
 
 // Define type for navigation params
 type RootStackParamList = {
@@ -31,6 +32,7 @@ type RootStackParamList = {
   'Chọn vé': { event: any };
   'Thanh toán': { eventId: number; tickets: { ticketId: number; quantity: number }[]; event: any };
   'Vé của tôi': undefined;
+  'Login': undefined;
 };
 
 // Define types for navigation and route
@@ -46,7 +48,10 @@ export default function PaymentScreen({ navigation, route }: Props) {
   const { eventId, tickets, event } = route.params || {};
   const [timeLeft, setTimeLeft] = useState({ minutes: 15, seconds: 0 });
   const [discountCode, setDiscountCode] = useState('');
+  const [discountedAmount, setDiscountedAmount] = useState<number | null>(null);
+  const [isDiscountValid, setIsDiscountValid] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
+  const [discountLoading, setDiscountLoading] = useState(false);
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
 
   // Countdown timer
@@ -77,6 +82,75 @@ export default function PaymentScreen({ navigation, route }: Props) {
       }, 0)
     : 0;
 
+  // Handle apply discount code
+  const handleApplyDiscount = async () => {
+    if (!discountCode.trim()) {
+      Alert.alert('Thông báo', 'Vui lòng nhập mã giảm giá!');
+      return;
+    }
+
+    setDiscountLoading(true);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        Alert.alert('Thông báo', 'Vui lòng đăng nhập để kiểm tra mã giảm giá!');
+        navigation.navigate('Login');
+        return;
+      }
+
+      const response = await fetch(`${DISCOUNT_API_URL}/${discountCode}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Mã giảm giá không hợp lệ');
+      }
+
+      const result = await response.json();
+      const discount = result.data;
+
+      // Check if discount is applicable to the event
+      if (discount.event?.eventId !== eventId) {
+        throw new Error('Mã giảm giá không áp dụng cho sự kiện này');
+      }
+
+      // Check validity dates
+      const currentTime = new Date();
+      if (discount.validFrom && new Date(discount.validFrom) > currentTime) {
+        throw new Error('Mã giảm giá chưa có hiệu lực');
+      }
+      if (discount.validTo && new Date(discount.validTo) < currentTime) {
+        throw new Error('Mã giảm giá đã hết hạn');
+      }
+
+      // Calculate discounted amount
+      let newAmount = totalAmount;
+      if (discount.discountType === 'percentage') {
+        newAmount = totalAmount * (1 - discount.value / 100);
+      } else if (discount.discountType === 'fixed_amount') {
+        newAmount = Math.max(0, totalAmount - discount.value);
+      } else {
+        throw new Error('Loại giảm giá không được hỗ trợ');
+      }
+
+      setDiscountedAmount(Math.round(newAmount));
+      setIsDiscountValid(true);
+      Alert.alert('Thành công', 'Mã giảm giá đã được áp dụng!');
+    } catch (error: any) {
+      console.error('Discount error:', error);
+      setIsDiscountValid(false);
+      setDiscountedAmount(null);
+      Alert.alert('Lỗi', `Không thể áp dụng mã giảm giá: ${error.message}`);
+    } finally {
+      setDiscountLoading(false);
+    }
+  };
+
   // Handle payment
   const handlePayment = async () => {
     if (!eventId || !tickets || tickets.length === 0) {
@@ -92,9 +166,7 @@ export default function PaymentScreen({ navigation, route }: Props) {
       return;
     }
 
-    
-
-    // Check ticket availability for "Thường" or "Nguyên"
+    // Check ticket availability
     const ticketTypeKey = event.ticketTypes[tickets[0].ticketId.toString()];
     const availableTickets = event.ticketsTotal[ticketTypeKey] - (event.ticketsSold[ticketTypeKey] || 0);
     const requestedTickets = tickets.reduce((sum, t) => sum + t.quantity, 0);
@@ -106,16 +178,17 @@ export default function PaymentScreen({ navigation, route }: Props) {
     setLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
-  
       if (!token) {
-        Alert.alert('Thông báo', 'Vui lòng đăng nhập để mua vé!');
+        Alert.alert('Thông báo', 'Vui lòng đăng nhập để thanh toán!');
         setLoading(false);
+        navigation.navigate('Login');
         return;
       }
+
       const body = {
         eventId,
         tickets,
-        ...(discountCode && { discountCode }),
+        ...(discountCode && isDiscountValid && { discountCode }),
         returnUrl: 'https://url.ngrok-free.app/success',
         cancelUrl: 'https://url.ngrok-free.app/cancel',
       };
@@ -128,12 +201,13 @@ export default function PaymentScreen({ navigation, route }: Props) {
         },
         body: JSON.stringify(body),
       });
-   
+
       if (!response.ok) {
         const errorData = await response.json();
         console.log('Error response:', errorData);
         throw new Error(errorData.message || 'Không thể tạo đơn hàng');
       }
+
       const result = await response.json();
       console.log('Response data:', JSON.stringify(result));
       if (result.data?.checkoutUrl) {
@@ -157,11 +231,11 @@ export default function PaymentScreen({ navigation, route }: Props) {
     const { url } = navState;
     console.log('WebView URL:', url);
     if (url.includes('https://url.ngrok-free.app/success')) {
-      setCheckoutUrl(null); // Hide WebView
+      setCheckoutUrl(null);
       Alert.alert('Thành công', 'Thanh toán hoàn tất!');
       navigation.navigate('Vé của tôi');
     } else if (url.includes('https://url.ngrok-free.app/cancel')) {
-      setCheckoutUrl(null); // Hide WebView
+      setCheckoutUrl(null);
       Alert.alert('Thông báo', 'Thanh toán đã bị hủy.');
       setLoading(false);
     }
@@ -221,16 +295,16 @@ export default function PaymentScreen({ navigation, route }: Props) {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Event Info */}
+        {/* Event Image */}
+        <View style={styles.imageContainer}>
+          <Image
+            source={{ uri: event.backgroundUrl || 'https://via.placeholder.com/300' }}
+            style={styles.eventImage}
+            resizeMode="cover"
+          />
+        </View>
+        {/* Event Info with Padding */}
         <View style={styles.eventInfo}>
-          {/* Event Image */}
-          <View style={styles.imageContainer}>
-            <Image
-              source={{ uri: event.backgroundUrl || 'https://via.placeholder.com/300' }}
-              style={styles.eventImage}
-              resizeMode="cover"
-            />
-          </View>
           <Text style={styles.eventTitle}>{event.eventName}</Text>
           <View style={styles.infoRow}>
             <Ionicons name="location-outline" size={16} color="#4B5563" />
@@ -270,12 +344,35 @@ export default function PaymentScreen({ navigation, route }: Props) {
                 {event.ticketTypes[ticket.ticketId.toString()]}: {ticket.quantity} vé
               </Text>
             ))}
-            <TextInput
-              style={styles.input}
-              placeholder="Nhập mã giảm giá"
-              value={discountCode}
-              onChangeText={setDiscountCode}
-            />
+            <View style={styles.discountContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Nhập mã giảm giá"
+                value={discountCode}
+                onChangeText={setDiscountCode}
+                autoCapitalize="none"
+                keyboardType="default"
+                returnKeyType="done"
+                textContentType="none"
+              />
+              <TouchableOpacity
+                style={[styles.applyButton, discountLoading && styles.disabledButton]}
+                onPress={handleApplyDiscount}
+                disabled={discountLoading}
+              >
+                <Text style={styles.applyButtonText}>
+                  {discountLoading ? 'Đang kiểm tra...' : 'Áp dụng'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {isDiscountValid === false && (
+              <Text style={styles.discountError}>Mã giảm giá không hợp lệ</Text>
+            )}
+            {isDiscountValid && discountedAmount !== null && (
+              <Text style={styles.discountSuccess}>
+                Số tiền sau giảm giá: {discountedAmount.toLocaleString('vi-VN')} đ
+              </Text>
+            )}
           </View>
           {/* Countdown Timer */}
           <View style={styles.timerContainer}>
@@ -304,15 +401,17 @@ export default function PaymentScreen({ navigation, route }: Props) {
             <Text style={styles.priceLabel}>Tổng tiền</Text>
             <View style={styles.priceRow}>
               <Text style={styles.priceAmount}>
-                {totalAmount.toLocaleString('vi-VN')} đ
+                {(isDiscountValid && discountedAmount !== null
+                  ? discountedAmount
+                  : totalAmount).toLocaleString('vi-VN')} đ
               </Text>
               <Ionicons name="chevron-up" size={16} color="#FF7E42" />
             </View>
           </View>
           <TouchableOpacity
-            style={[styles.payButton, loading && styles.disabledButton]}
+            style={[styles.payButton, loading || isDiscountValid === false ? styles.disabledButton : {}]}
             onPress={handlePayment}
-            disabled={loading}
+            disabled={loading || isDiscountValid === false}
           >
             <Text style={styles.payButtonText}>
               {loading ? 'Đang xử lý...' : 'Thanh toán'}
@@ -351,8 +450,7 @@ const styles = StyleSheet.create({
   } as ViewStyle,
   eventInfo: {
     backgroundColor: 'white',
-    padding: 16,
-    flex: 1,
+    paddingHorizontal: 16, // Padding for content
   } as ViewStyle,
   imageContainer: {
     borderRadius: 12,
@@ -362,8 +460,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    marginBottom: 16,
-    marginTop: -16,
   } as ViewStyle,
   eventImage: {
     width: '100%',
@@ -405,12 +501,40 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 8,
   },
+  discountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  } as ViewStyle,
   input: {
+    flex: 1,
     backgroundColor: '#F3F4F6',
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
     color: '#1F2937',
+    marginRight: 8,
+  },
+  applyButton: {
+    backgroundColor: '#FF7E42',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+  } as ViewStyle,
+  applyButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  discountError: {
+    color: '#EF4444',
+    fontSize: 14,
+    marginTop: 4,
+  },
+  discountSuccess: {
+    color: '#10B981',
+    fontSize: 14,
+    marginTop: 4,
   },
   timerContainer: {
     backgroundColor: '#F3F4F6',

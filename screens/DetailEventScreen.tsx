@@ -80,23 +80,26 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
       if (!isEventComplete) {
         return;
       }
-
       setLoadingComments(true);
       setErrorComments(null);
       try {
         const fetchedComments = await eventService.getEventComments(event.eventId);
         setComments(fetchedComments);
       } catch (error: any) {
-  // ...existing code...
-        setErrorComments('Không thể tải bình luận. Vui lòng kiểm tra kết nối mạng và thử lại.');
-        Alert.alert(
-          'Lỗi',
-          'Không thể tải bình luận. Vui lòng thử lại sau.',
-          [
-            { text: 'Hủy', style: 'cancel' },
-            { text: 'Thử lại', onPress: () => fetchComments() },
-          ]
-        );
+        if (error.response?.status === 404) {
+          setComments([]); // Không có bình luận, hiển thị "Chưa có bình luận nào"
+        } else {
+          console.error('Failed to fetch comments:', error);
+          setErrorComments('Không thể tải bình luận. Vui lòng kiểm tra kết nối mạng và thử lại.');
+          Alert.alert(
+            'Lỗi',
+            'Không thể tải bình luận. Vui lòng thử lại sau.',
+            [
+              { text: 'Hủy', style: 'cancel' },
+              { text: 'Thử lại', onPress: () => fetchComments() },
+            ]
+          );
+        }
       } finally {
         setLoadingComments(false);
       }
@@ -154,7 +157,7 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
       }
       navigation.navigate('Chọn vé', { event });
     } catch (error) {
-  // ...existing code...
+      console.error('Error checking token:', error);
       Alert.alert('Lỗi', 'Không thể kiểm tra trạng thái đăng nhập. Vui lòng thử lại.');
     }
   };
@@ -179,13 +182,12 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
       }
 
       const newComment = await eventService.postEventComment(event.eventId, rating, comment);
-      // Thêm bình luận mới vào danh sách tạm thời
       setComments([newComment, ...comments]);
       setComment('');
       setRating(0);
       Alert.alert('Thành công', 'Bình luận đã được gửi!');
     } catch (error: any) {
-  // ...existing code...
+      console.error('Error submitting comment:', error);
       Alert.alert('Lỗi', 'Không thể gửi bình luận. Vui lòng thử lại sau.');
     }
   };
@@ -210,7 +212,6 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
       }
 
       await eventService.updateEventComment(reviewId, editingRating, editingComment);
-      // Cập nhật danh sách bình luận
       const updatedComments = comments.map(c => 
         c.commentId === reviewId ? { ...c, commentText: editingComment, rating: editingRating } : c
       );
@@ -220,7 +221,7 @@ const DetailEventScreen: React.FC<Props> = ({ navigation, route }) => {
       setEditingRating(0);
       Alert.alert('Thành công', 'Bình luận đã được cập nhật!');
     } catch (error: any) {
-  // ...existing code...
+      console.error('Error updating comment:', error);
       Alert.alert('Lỗi', 'Không thể cập nhật bình luận. Vui lòng thử lại sau.');
     }
   };
@@ -496,8 +497,7 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     paddingHorizontal: 16,
-    
-    paddingTop: 20, // Added padding to avoid sticking to header
+    paddingTop: 20,
   },
   eventCard: {
     backgroundColor: 'white',
