@@ -8,7 +8,6 @@ const getToken = async () => {
     const token = await AsyncStorage.getItem('token');
     return token || null;
   } catch (error) {
-    console.log('Lỗi khi lấy token:', error);
     return null;
   }
 };
@@ -75,13 +74,9 @@ export const getTicketByUserIdAxios = async (userId) => {
       ...(token && { Authorization: `Bearer ${token}` }),
     };
 
-    console.log('📡 Đang gọi API lấy vé cho userId:', userId);
-
     const { data } = await axios.get(`${API_URL}/users/ticket/${userId}`, {
       headers,
     });
-
-    console.log('🎟️ Vé lấy được:', data);
 
     return data?.data ?? []; // Trả về mảng rỗng nếu không có vé
   } catch (error) {

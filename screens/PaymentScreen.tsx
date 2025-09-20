@@ -192,7 +192,6 @@ export default function PaymentScreen({ navigation, route }: Props) {
         returnUrl: 'https://url.ngrok-free.app/success',
         cancelUrl: 'https://url.ngrok-free.app/cancel',
       };
-      console.log('Request body:', JSON.stringify(body));
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
@@ -204,12 +203,10 @@ export default function PaymentScreen({ navigation, route }: Props) {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.log('Error response:', errorData);
         throw new Error(errorData.message || 'Không thể tạo đơn hàng');
       }
 
       const result = await response.json();
-      console.log('Response data:', JSON.stringify(result));
       if (result.data?.checkoutUrl) {
         setCheckoutUrl(result.data.checkoutUrl);
       } else {
@@ -229,7 +226,6 @@ export default function PaymentScreen({ navigation, route }: Props) {
   // Handle WebView navigation
   const handleWebViewNavigation = (navState: { url: string }) => {
     const { url } = navState;
-    console.log('WebView URL:', url);
     if (url.includes('https://url.ngrok-free.app/success')) {
       setCheckoutUrl(null);
       Alert.alert('Thành công', 'Thanh toán hoàn tất!');
