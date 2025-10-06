@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import CryptoJS from 'crypto-js';
 import axios from 'axios';
 
-const BASE_URL = 'http://10.0.2.2:8080/api';
+const BASE_URL = 'http://113.20.107.77:8080/api';
 const storageKey = 'chatMessages_v1'; 
 let encryptionKey = 'eventa-secret-key'; 
 

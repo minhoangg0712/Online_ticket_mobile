@@ -22,9 +22,9 @@ import WebView from 'react-native-webview';
 
 const { width } = Dimensions.get('window');
 
-// Use machine IP or 10.0.2.2 for emulator
-const API_URL = 'http://10.0.2.2:8080/api/orders';
-const DISCOUNT_API_URL = 'http://10.0.2.2:8080/api/discounts';
+// Use machine IP or 113.20.107.77 for emulator
+const API_URL = 'http://113.20.107.77:8080/api/orders';
+const DISCOUNT_API_URL = 'http://113.20.107.77:8080/api/discounts';
 
 // Define type for navigation params
 type RootStackParamList = {
